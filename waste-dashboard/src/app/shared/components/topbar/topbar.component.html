@@ -1,0 +1,19 @@
+<header class="topbar">
+  <div class="breadcrumb">
+    @for (crumb of breadcrumbs; track crumb; let last = $last) {
+      <span [class.active]="last" [class.root]="!last">{{ crumb }}</span>
+      @if (!last) { <span class="sep">›</span> }
+    }
+  </div>
+
+  <div class="spacer"></div>
+
+  <input class="search" type="text" placeholder="Buscar..." />
+
+  <button class="icon-btn" title="Notificaciones">
+    🔔
+    <div class="notif-dot"></div>
+  </button>
+
+  <button class="icon-btn" title="Configuración">⚙</button>
+</header>

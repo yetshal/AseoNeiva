@@ -1,0 +1,111 @@
+<div class="page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Usuarios</h1>
+      <p class="page-sub">Gestión y análisis de ciudadanos registrados en la app</p>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span class="stat-label">Total usuarios</span>
+      <span class="stat-value">{{ stats.totalUsers | number }}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Activos</span>
+      <span class="stat-value">{{ stats.activeUsers | number }}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Reportes totales</span>
+      <span class="stat-value">{{ stats.totalReports | number }}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Puntos entregados</span>
+      <span class="stat-value">{{ stats.totalPoints | number }}</span>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="table-card">
+    <div class="table-toolbar">
+      <div class="toolbar-left">
+        <span class="table-title">Lista de usuarios</span>
+        <span class="table-count">{{ total | number }} registros</span>
+      </div>
+      <div class="toolbar-right">
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Buscar por nombre o correo..."
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearch($event)" />
+        <select class="filter-select" [(ngModel)]="statusFilter" (ngModelChange)="onStatusChange($event)">
+          <option value="">Todos los estados</option>
+          <option value="active">Activo</option>
+          <option value="inactive">Inactivo</option>
+          <option value="pending">Pendiente</option>
+        </select>
+      </div>
+    </div>
+
+    @if (loading) {
+      <div class="loading-row">Cargando usuarios...</div>
+    } @else if (users.length === 0) {
+      <div class="empty-row">No se encontraron usuarios.</div>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Correo</th>
+            <th>Estado</th>
+            <th>Nivel</th>
+            <th>Puntos</th>
+            <th>Racha</th>
+            <th>Registro</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of users; track user.id) {
+            <tr (click)="viewUser(user.id)" class="clickable-row">
+              <td class="name-cell">
+                <div class="avatar">{{ user.name.charAt(0).toUpperCase() }}</div>
+                {{ user.name }}
+              </td>
+              <td class="muted">{{ user.email }}</td>
+              <td>
+                <span class="pill" [class]="user.status">
+                  {{ user.status === 'active' ? 'Activo' : user.status === 'inactive' ? 'Inactivo' : 'Pendiente' }}
+                </span>
+              </td>
+              <td>{{ user.level }}</td>
+              <td>{{ user.points | number }}</td>
+              <td>{{ user.streak }} días</td>
+              <td class="muted">{{ user.created_at | date:'dd/MM/yyyy' }}</td>
+              <td>
+                <button class="action-btn" (click)="$event.stopPropagation(); viewUser(user.id)">
+                  Ver →
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <!-- Paginación -->
+      @if (totalPages > 1) {
+        <div class="pagination">
+          <button class="page-btn" [disabled]="page === 1" (click)="goToPage(page - 1)">‹</button>
+          @for (p of pages; track p) {
+            <button class="page-btn" [class.active]="p === page" (click)="goToPage(p)">{{ p }}</button>
+          }
+          <button class="page-btn" [disabled]="page === totalPages" (click)="goToPage(page + 1)">›</button>
+        </div>
+      }
+    }
+  </div>
+</div>

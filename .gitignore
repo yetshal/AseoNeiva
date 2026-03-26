@@ -1,0 +1,71 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Environment variables (except .env which is tracked)
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+out/
+*/dist/
+*/build/
+
+# Angular
+waste-dashboard/.angular/
+waste-dashboard/.angular/cache/
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+*.log
+
+# Testing
+coverage/
+*.lcov
+.nyc_output/
+
+# Misc
+*.tgz
+*.tar.gz
+*.zip
+*.rar
+
+# TypeScript
+*.tsbuildinfo
+
+# Backend specific
+waste-backend/*.js
+!waste-backend/tsconfig.json
+waste-backend/src/**/*.js
+waste-backend/src/**/*.js.map
+
+# Frontend specific
+waste-dashboard/.sass-cache/
+waste-dashboard/connect.lock/
+waste-dashboard/lib/
+waste-dashboard/tmp/
+waste-dashboard/out-tsc/
+
+# Cache
+.cache/
+*.cache

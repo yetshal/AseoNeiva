@@ -1,0 +1,63 @@
+.topbar {
+  height: 52px;
+  background: white;
+  border-bottom: 1px solid #ebebeb;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+
+  .root   { color: #bbb; }
+  .sep    { color: #ddd; font-size: 11px; }
+  .active { color: #333; font-weight: 500; }
+}
+
+.spacer { flex: 1; }
+
+.search {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid #e8e8e4;
+  border-radius: 8px;
+  background: #f9f9f7;
+  font-size: 12px;
+  color: #666;
+  width: 180px;
+  outline: none;
+
+  &:focus { border-color: #1D9E75; }
+}
+
+.icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid #ebebeb;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  position: relative;
+
+  &:hover { background: #f5f5f3; }
+}
+
+.notif-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #1D9E75;
+}

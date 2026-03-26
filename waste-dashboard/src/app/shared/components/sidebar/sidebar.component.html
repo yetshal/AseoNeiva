@@ -1,0 +1,68 @@
+<aside class="sidebar">
+
+  <!-- Brand -->
+  <div class="sb-brand">
+    <div class="sb-icon">
+      <svg viewBox="0 0 15 15" fill="none">
+        <path d="M7.5 1.5L13 4.75V11.25L7.5 14.5L2 11.25V4.75L7.5 1.5Z"
+              stroke="white" stroke-width="1.3" fill="none"/>
+        <circle cx="7.5" cy="7.5" r="2" fill="white"/>
+      </svg>
+    </div>
+    <div>
+      <span class="sb-title">AseoNeiva</span>
+      <span class="sb-sub">Panel Corporativo</span>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <nav class="sb-nav">
+
+    <span class="sb-section">Principal</span>
+    @for (item of principalNav; track item.route) {
+      <ng-container *ngTemplateOutlet="navItem; context: { $implicit: item }"/>
+    }
+
+    <span class="sb-section">Gestión</span>
+    @for (item of gestionNav; track item.route) {
+      <ng-container *ngTemplateOutlet="navItem; context: { $implicit: item }"/>
+    }
+
+    <span class="sb-section">Admin</span>
+    @for (item of adminNav; track item.route) {
+      <ng-container *ngTemplateOutlet="navItem; context: { $implicit: item }"/>
+    }
+
+  </nav>
+
+  <!-- Footer con usuario -->
+  <div class="sb-footer">
+    <div class="user-chip">
+      <div class="avatar">{{ initials }}</div>
+      <div>
+        <span class="user-name">{{ admin?.name || 'Administrador' }}</span>
+        <span class="user-role">{{ admin?.role === 'superadmin' ? 'Super Admin' : admin?.role }}</span>
+      </div>
+      <button class="logout-btn" title="Cerrar sesión" (click)="logout()">↩</button>
+    </div>
+  </div>
+
+</aside>
+
+<!-- Template reutilizable para cada ítem -->
+<ng-template #navItem let-item>
+  @if (item.available) {
+    <a class="nav-item"
+       [routerLink]="item.route"
+       routerLinkActive="active">
+      <div class="nav-dot"></div>
+      <span class="nav-label">{{ item.label }}</span>
+    </a>
+  } @else {
+    <div class="nav-item disabled">
+      <div class="nav-dot"></div>
+      <span class="nav-label">{{ item.label }}</span>
+      <span class="nav-badge-soon">pronto</span>
+    </div>
+  }
+</ng-template>

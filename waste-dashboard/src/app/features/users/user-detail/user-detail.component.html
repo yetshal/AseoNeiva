@@ -1,0 +1,160 @@
+<div class="page">
+
+  @if (loading) {
+    <div class="loading">Cargando usuario...</div>
+  } @else if (user) {
+
+    <!-- Mensajes -->
+    @if (successMessage) {
+      <div class="alert success">✓ {{ successMessage }}</div>
+    }
+    @if (errorMessage) {
+      <div class="alert error">✕ {{ errorMessage }}</div>
+    }
+
+    <!-- Header -->
+    <div class="page-header">
+      <button class="back-btn" (click)="goBack()">← Usuarios</button>
+      <div class="header-actions">
+
+        <!-- Cambiar estado -->
+        <div class="status-wrapper">
+          <button class="status-trigger" [class]="user.status" (click)="toggleStatusMenu()">
+            {{ getStatusLabel(user.status) }} ▾
+          </button>
+          @if (showStatusMenu) {
+            <div class="status-menu">
+              @for (s of statuses; track s.value) {
+                <button
+                  class="status-option"
+                  [class]="s.class"
+                  [class.current]="user.status === s.value"
+                  (click)="changeStatus(s.value)">
+                  {{ s.label }}
+                  @if (user.status === s.value) { <span class="check">✓</span> }
+                </button>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Suspender rápido -->
+        @if (user.status !== 'inactive') {
+          <button
+            class="suspend-btn"
+            [disabled]="savingStatus"
+            (click)="suspend()">
+            {{ savingStatus ? 'Guardando...' : 'Suspender usuario' }}
+          </button>
+        } @else {
+          <button
+            class="restore-btn"
+            [disabled]="savingStatus"
+            (click)="changeStatus('active')">
+            {{ savingStatus ? 'Guardando...' : 'Restaurar usuario' }}
+          </button>
+        }
+
+      </div>
+    </div>
+
+    <div class="layout">
+
+      <!-- Columna izquierda -->
+      <div class="left-col">
+
+        <!-- Perfil -->
+        <div class="card profile-card">
+          <div class="avatar-lg">{{ user.name.charAt(0).toUpperCase() }}</div>
+          <h2 class="user-name">{{ user.name }}</h2>
+          <p class="user-email">{{ user.email }}</p>
+
+          <div class="divider"></div>
+
+          <div class="info-row">
+            <span class="info-label">Teléfono</span>
+            <span class="info-val">{{ user.phone || '—' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Dirección</span>
+            <span class="info-val">{{ user.address || '—' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Registro</span>
+            <span class="info-val">{{ user.created_at | date:'dd/MM/yyyy' }}</span>
+          </div>
+        </div>
+
+        <!-- Gamificación -->
+        <div class="card">
+          <h3 class="card-title">Gamificación</h3>
+
+          <div class="stats-mini">
+            <div class="stat-mini">
+              <span class="stat-mini-val">{{ user.points | number }}</span>
+              <span class="stat-mini-label">Puntos</span>
+            </div>
+            <div class="stat-mini">
+              <span class="stat-mini-val">{{ user.streak }}</span>
+              <span class="stat-mini-label">Días racha</span>
+            </div>
+            <div class="stat-mini">
+              <span class="stat-mini-val">{{ reports.length }}</span>
+              <span class="stat-mini-label">Reportes</span>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="level-section">
+            <div class="level-header">
+              <div>
+                <span class="level-num">Nivel {{ user.level }}</span>
+                <span class="level-title">{{ getLevelTitle(user.level) }}</span>
+              </div>
+              <span class="level-next">
+                {{ getPointsToNextLevel(user.points, user.level) }} pts para el siguiente
+              </span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill"
+                   [style.width.%]="getProgressPercent(user.points, user.level)">
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Columna derecha — Reportes -->
+      <div class="right-col">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Historial de reportes</h3>
+            <span class="badge-count">{{ reports.length }}</span>
+          </div>
+
+          @if (reports.length === 0) {
+            <p class="empty-text">Este usuario no tiene reportes.</p>
+          } @else {
+            <div class="reports-list">
+              @for (r of reports; track r.id) {
+                <div class="report-item">
+                  <div class="report-top">
+                    <span class="report-type">{{ r.type }}</span>
+                    <span class="report-pill" [class]="r.status">
+                      {{ getReportStatusLabel(r.status) }}
+                    </span>
+                  </div>
+                  <p class="report-desc">{{ r.description || '—' }}</p>
+                  <span class="report-date">{{ r.created_at | date:'dd/MM/yyyy, h:mm a' }}</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+    </div>
+  }
+</div>
