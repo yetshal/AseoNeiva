@@ -1,0 +1,161 @@
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Resumen</h1>
+      <p class="page-sub">Panel de control general del sistema AseoNeiva</p>
+    </div>
+  </div>
+
+  @if (loading) {
+    <div class="loading-state">Cargando datos del panel...</div>
+  } @else if (error) {
+    <div class="error-state">{{ error }}</div>
+  } @else if (data) {
+
+    <!-- ── KPI Grid principal ─────────────────────────── -->
+    <div class="kpi-grid">
+
+      <div class="kpi-card clickable" (click)="goToUsers()">
+        <div class="kpi-icon users">
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+          </svg>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">Usuarios registrados</span>
+          <span class="kpi-value">{{ data.users.total | number }}</span>
+          <span class="kpi-sub">{{ data.users.active | number }} activos</span>
+        </div>
+        <span class="kpi-arrow">→</span>
+      </div>
+
+      <div class="kpi-card clickable" (click)="goToReports()">
+        <div class="kpi-icon reports">
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">Reportes ciudadanos</span>
+          <span class="kpi-value">{{ data.reports.total | number }}</span>
+          <span class="kpi-sub pending">{{ data.reports.pending | number }} pendientes</span>
+        </div>
+        <span class="kpi-arrow">→</span>
+      </div>
+
+      <div class="kpi-card clickable" (click)="goToFleet()">
+        <div class="kpi-icon fleet">
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
+            <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7h4l1 4v3a1 1 0 01-1 1h-1.05a2.5 2.5 0 01-4.9 0H13a1 1 0 01-1-1v-5a1 1 0 011-1h1z"/>
+          </svg>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">Vehículos en flota</span>
+          <span class="kpi-value">{{ data.fleet.total | number }}</span>
+          <span class="kpi-sub">{{ data.fleet.active | number }} activos ({{ fleetActiveRate }}%)</span>
+        </div>
+        <span class="kpi-arrow">→</span>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon fuel">
+          <svg viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5 2a1 1 0 011 1v1h8V3a1 1 0 112 0v1h1a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V6a2 2 0 012-2h1V3a1 1 0 011-1zm9 8a1 1 0 10-2 0v3a1 1 0 102 0v-3zM7 9a1 1 0 00-1 1v2a1 1 0 102 0v-2a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">Combustible ahorrado</span>
+          <span class="kpi-value">{{ data.fleet.fuelSaved | number:'1.0-1' }} L</span>
+          <span class="kpi-sub">en {{ data.fleet.distanceKm | number:'1.0-1' }} km recorridos</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Segunda fila: métricas adicionales ─────────── -->
+    <div class="metrics-row">
+
+      <div class="metric-card">
+        <span class="metric-title">Puntos entregados (gamificación)</span>
+        <span class="metric-big">{{ data.users.points | number }}</span>
+        <div class="metric-bar-wrap">
+          <div class="metric-bar-fill" [style.width.%]="100"></div>
+        </div>
+        <span class="metric-hint">Sistema de fidelización ciudadana</span>
+      </div>
+
+      <div class="metric-card">
+        <span class="metric-title">Resolución de reportes</span>
+        <span class="metric-big">{{ reportResolutionRate }}%</span>
+        <div class="metric-bar-wrap">
+          <div class="metric-bar-fill green" [style.width.%]="reportResolutionRate"></div>
+        </div>
+        <span class="metric-hint">{{ data.reports.resolved }} de {{ data.reports.total }} resueltos</span>
+      </div>
+
+      <div class="metric-card">
+        <span class="metric-title">Recolecciones completadas</span>
+        <span class="metric-big">{{ data.fleet.collections | number }}</span>
+        <div class="metric-bar-wrap">
+          <div class="metric-bar-fill blue" [style.width.%]="100"></div>
+        </div>
+        <span class="metric-hint">Rutas finalizadas en total</span>
+      </div>
+
+    </div>
+
+    <!-- ── Fila inferior: Top usuarios + Reportes por tipo ─ -->
+    <div class="bottom-row">
+
+      <!-- Top 5 usuarios -->
+      <div class="list-card">
+        <div class="list-header">
+          <span class="list-title">Top ciudadanos</span>
+          <button class="link-btn" (click)="goToUsers()">Ver todos →</button>
+        </div>
+        @if (data.topUsers.length === 0) {
+          <p class="empty-hint">Sin datos disponibles</p>
+        } @else {
+          <div class="rank-list">
+            @for (u of data.topUsers; track u.id; let i = $index) {
+              <div class="rank-item">
+                <span class="rank-pos">{{ i + 1 }}</span>
+                <div class="rank-avatar">{{ u.name.charAt(0) }}</div>
+                <div class="rank-info">
+                  <span class="rank-name">{{ u.name }}</span>
+                  <span class="rank-meta">Nv. {{ u.level }} · {{ u.streak }} días racha</span>
+                </div>
+                <span class="rank-pts">{{ u.points | number }} pts</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Reportes por tipo -->
+      <div class="list-card">
+        <div class="list-header">
+          <span class="list-title">Reportes por tipo</span>
+          <button class="link-btn" (click)="goToReports()">Análisis →</button>
+        </div>
+        @if (data.reports.byType.length === 0) {
+          <p class="empty-hint">Sin reportes registrados</p>
+        } @else {
+          <div class="type-list">
+            @for (t of data.reports.byType; track t.type) {
+              <div class="type-item">
+                <span class="type-dot"></span>
+                <span class="type-name">{{ t.type }}</span>
+                <span class="type-count">{{ t.count }}</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+    </div>
+
+  }
+</div>

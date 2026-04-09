@@ -1,0 +1,38 @@
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
+import { FleetResponse, VehicleDetail, Vehicle } from '../../shared/models/fleet.model';
+
+@Injectable({ providedIn: 'root' })
+export class FleetService {
+  private http = inject(HttpClient);
+  private base = `${environment.apiUrl}/fleet`;
+
+  getVehicles(filters: { status?: string; type?: string; search?: string } = {}) {
+    let params = new HttpParams();
+    if (filters.status) params = params.set('status', filters.status);
+    if (filters.type)   params = params.set('type',   filters.type);
+    if (filters.search) params = params.set('search', filters.search);
+    return this.http.get<FleetResponse>(this.base, { params });
+  }
+
+  getVehicleById(id: string) {
+    return this.http.get<VehicleDetail>(`${this.base}/${id}`);
+  }
+
+  createVehicle(data: Partial<Vehicle>) {
+    return this.http.post<{ vehicle: Vehicle }>(this.base, data);
+  }
+
+  updateVehicle(id: string, data: Partial<Vehicle>) {
+    return this.http.patch<{ vehicle: Vehicle }>(`${this.base}/${id}`, data);
+  }
+
+  deleteVehicle(id: string) {
+    return this.http.delete<{ message: string }>(`${this.base}/${id}`);
+  }
+
+  updateLocation(id: string, latitude: number, longitude: number) {
+    return this.http.patch<{ vehicle: Vehicle }>(`${this.base}/${id}/location`, { latitude, longitude });
+  }
+}

@@ -1,0 +1,176 @@
+.page { max-width: 1400px; height: calc(100vh - 52px - 40px); display: flex; flex-direction: column; }
+
+.page-header { margin-bottom: 16px; flex-shrink: 0; }
+.page-title  { font-size: 20px; font-weight: 500; letter-spacing: -0.4px; margin: 0 0 4px; }
+.page-sub    { font-size: 13px; color: #888; margin: 0; }
+
+// ── Fleet stats ────────────────────────────────────────────────
+.fleet-stats {
+  display: flex; gap: 10px; margin-bottom: 16px; flex-shrink: 0;
+}
+
+.fstat {
+  display: flex; align-items: center; gap: 7px;
+  background: white; border: 1px solid #ebebeb;
+  border-radius: 8px; padding: 8px 14px;
+}
+
+.fstat-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+
+  .active      & { background: #1D9E75; }
+  .maintenance & { background: #EAB308; }
+  .off         & { background: #EF4444; }
+  .total       & { background: #9CA3AF; }
+}
+
+.fstat-label { font-size: 12px; color: #888; }
+.fstat-num   { font-size: 15px; font-weight: 500; margin-left: 4px; }
+
+// ── Map layout ────────────────────────────────────────────────
+.map-layout {
+  display: flex; gap: 12px;
+  flex: 1; min-height: 0;
+}
+
+// ── Panel lateral ─────────────────────────────────────────────
+.sidebar-panel {
+  width: 320px; flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 10px;
+  overflow-y: auto;
+}
+
+.panel-toolbar {
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+.search-input {
+  height: 32px; padding: 0 10px;
+  border: 1px solid #e0e0e0; border-radius: 8px;
+  font-size: 13px; outline: none;
+  &:focus { border-color: #1D9E75; }
+}
+
+.filter-select {
+  height: 32px; padding: 0 8px;
+  border: 1px solid #e0e0e0; border-radius: 8px;
+  font-size: 13px; background: white; outline: none; cursor: pointer;
+}
+
+.panel-loading, .panel-error, .panel-empty {
+  font-size: 13px; color: #aaa; text-align: center; padding: 20px 0;
+}
+.panel-error { color: #D85A30; }
+
+// ── Vehicle list ──────────────────────────────────────────────
+.vehicle-list {
+  background: white; border: 1px solid #ebebeb;
+  border-radius: 12px; overflow: hidden;
+}
+
+.vehicle-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; cursor: pointer;
+  border-bottom: 1px solid #f5f5f3;
+  transition: background 0.1s;
+
+  &:last-child { border-bottom: none; }
+  &:hover      { background: #fafaf8; }
+  &.selected   { background: #E1F5EE; }
+}
+
+.v-status-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+
+.v-info {
+  flex: 1; display: flex; flex-direction: column; gap: 1px;
+}
+.v-plate  { font-size: 13px; font-weight: 500; }
+.v-driver { font-size: 11px; color: #888; }
+
+.v-right {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
+}
+.v-type { font-size: 10px; color: #aaa; }
+
+.v-badge {
+  font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 500;
+
+  &.active          { background: #E1F5EE; color: #0F6E56; }
+  &.maintenance     { background: #FEF3C7; color: #92400E; }
+  &.out_of_service  { background: #FEE2E2; color: #991B1B; }
+  &.pending         { background: #FAEEDA; color: #854F0B; }
+  &.in_progress     { background: #E6F1FB; color: #185FA5; }
+  &.completed       { background: #E1F5EE; color: #0F6E56; }
+  &.cancelled       { background: #f0f0ee; color: #888; }
+}
+
+// ── Vehicle detail ────────────────────────────────────────────
+.vehicle-detail {
+  background: white; border: 1px solid #ebebeb;
+  border-radius: 12px; padding: 14px;
+}
+
+.detail-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.detail-title { font-size: 14px; font-weight: 500; }
+
+.close-btn {
+  width: 22px; height: 22px; border-radius: 6px;
+  border: 1px solid #ebebeb; background: none;
+  cursor: pointer; font-size: 11px; color: #aaa;
+  &:hover { background: #f5f5f3; }
+}
+
+.detail-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px; margin-bottom: 12px;
+}
+
+.detail-item {
+  display: flex; flex-direction: column; gap: 2px;
+  &.full { grid-column: 1 / -1; }
+}
+.di-label { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.3px; }
+.di-value { font-size: 13px; font-weight: 500; }
+
+.detail-section { margin-top: 10px; }
+.detail-section-title {
+  display: block; font-size: 11px; color: #aaa;
+  text-transform: uppercase; letter-spacing: 0.3px;
+  margin-bottom: 8px;
+}
+
+.assign-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0; border-bottom: 1px solid #f5f5f3;
+  &:last-child { border-bottom: none; }
+}
+.assign-date  { font-size: 11px; color: #999; width: 32px; flex-shrink: 0; }
+.assign-route { flex: 1; font-size: 12px; }
+
+// ── Mapa ──────────────────────────────────────────────────────
+.map-wrapper {
+  flex: 1; position: relative; border-radius: 12px; overflow: hidden;
+  border: 1px solid #ebebeb; background: #f0f0ed;
+}
+
+.google-map {
+  width: 100%; height: 100%; min-height: 400px;
+}
+
+.map-placeholder {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 12px; color: #bbb; font-size: 13px;
+  z-index: 1; pointer-events: none;
+
+  .mp-icon {
+    width: 48px; height: 48px; color: #ccc;
+    svg { width: 100%; height: 100%; }
+  }
+}

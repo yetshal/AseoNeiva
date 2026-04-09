@@ -1,0 +1,324 @@
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Planificador de rutas</h1>
+      <p class="page-sub">Asignación de vehículos y personal a rutas de recolección y barrido</p>
+    </div>
+    <div class="header-actions">
+      <div class="view-toggle">
+        <button class="vt-btn" [class.active]="selectedView === 'planner'" (click)="selectedView = 'planner'">
+          Asignaciones
+        </button>
+        <button class="vt-btn" [class.active]="selectedView === 'routes'" (click)="selectedView = 'routes'">
+          Rutas
+        </button>
+      </div>
+    </div>
+  </div>
+
+  @if (loading) {
+    <div class="loading-state">Cargando planificador...</div>
+  } @else {
+
+    <!-- ═══════════ VISTA: ASIGNACIONES ══════════════════ -->
+    @if (selectedView === 'planner') {
+      <div class="planner-view">
+
+        <div class="planner-toolbar">
+          <div class="date-selector">
+            <label class="date-label">Fecha:</label>
+            <input type="date" class="date-input"
+                   [(ngModel)]="selectedDate"
+                   (ngModelChange)="onDateChange()" />
+          </div>
+          <button class="btn-primary" (click)="openAssignModal()">+ Nueva asignación</button>
+        </div>
+
+        @if (error) {
+          <div class="error-banner">{{ error }}</div>
+        }
+
+        <!-- Turno mañana -->
+        <div class="shift-section">
+          <div class="shift-header morning">
+            <span class="shift-icon">☀</span>
+            <span class="shift-label">Turno mañana</span>
+            <span class="shift-count">{{ assignmentsByShift('morning').length }} asignaciones</span>
+          </div>
+          @if (assignmentsByShift('morning').length === 0) {
+            <div class="shift-empty">Sin asignaciones para este turno</div>
+          } @else {
+            <div class="assignments-grid">
+              @for (a of assignmentsByShift('morning'); track a.id) {
+                <ng-container *ngTemplateOutlet="assignCard; context: { $implicit: a }"/>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Turno tarde -->
+        <div class="shift-section">
+          <div class="shift-header afternoon">
+            <span class="shift-icon">🌤</span>
+            <span class="shift-label">Turno tarde</span>
+            <span class="shift-count">{{ assignmentsByShift('afternoon').length }} asignaciones</span>
+          </div>
+          @if (assignmentsByShift('afternoon').length === 0) {
+            <div class="shift-empty">Sin asignaciones para este turno</div>
+          } @else {
+            <div class="assignments-grid">
+              @for (a of assignmentsByShift('afternoon'); track a.id) {
+                <ng-container *ngTemplateOutlet="assignCard; context: { $implicit: a }"/>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Turno noche -->
+        <div class="shift-section">
+          <div class="shift-header night">
+            <span class="shift-icon">🌙</span>
+            <span class="shift-label">Turno noche</span>
+            <span class="shift-count">{{ assignmentsByShift('night').length }} asignaciones</span>
+          </div>
+          @if (assignmentsByShift('night').length === 0) {
+            <div class="shift-empty">Sin asignaciones para este turno</div>
+          } @else {
+            <div class="assignments-grid">
+              @for (a of assignmentsByShift('night'); track a.id) {
+                <ng-container *ngTemplateOutlet="assignCard; context: { $implicit: a }"/>
+              }
+            </div>
+          }
+        </div>
+
+      </div>
+    }
+
+    <!-- ═══════════ VISTA: RUTAS ══════════════════════════ -->
+    @if (selectedView === 'routes') {
+      <div class="routes-view">
+
+        <div class="routes-toolbar">
+          <span class="routes-count">{{ routes.length }} rutas registradas</span>
+          <button class="btn-primary" (click)="openRouteModal()">+ Nueva ruta</button>
+        </div>
+
+        @if (routes.length === 0) {
+          <div class="empty-state">No hay rutas configuradas.</div>
+        } @else {
+          <div class="routes-grid">
+            @for (r of routes; track r.id) {
+              <div class="route-card">
+                <div class="route-color-bar" [style.background]="r.color"></div>
+                <div class="route-body">
+                  <div class="route-top">
+                    <span class="route-name">{{ r.name }}</span>
+                    <span class="route-type-pill" [class]="r.type">{{ typeLabel(r.type) }}</span>
+                  </div>
+                  @if (r.description) {
+                    <p class="route-desc">{{ r.description }}</p>
+                  }
+                  <div class="route-meta">
+                    <span class="route-zone">📍 {{ r.zone || 'Sin zona' }}</span>
+                    <span class="route-status" [class]="r.status">{{ r.status === 'active' ? 'Activa' : 'Inactiva' }}</span>
+                  </div>
+                  <div class="route-actions">
+                    <button class="action-btn danger" (click)="confirmDeleteRoute(r.id)">Eliminar</button>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+      </div>
+    }
+
+  }
+</div>
+
+<!-- ── Template tarjeta de asignación ─────────────────────── -->
+<ng-template #assignCard let-a>
+  <div class="assign-card" [class]="a.status">
+    <div class="ac-header">
+      <div class="ac-color-dot" [style.background]="a.color"></div>
+      <span class="ac-route">{{ a.route_name }}</span>
+      <span class="ac-badge" [class]="a.status">{{ statusLabel(a.status) }}</span>
+    </div>
+    <div class="ac-vehicle">
+      <span class="ac-plate">{{ a.plate }}</span>
+      <span class="ac-driver">{{ a.driver_name || 'Sin conductor' }}</span>
+    </div>
+    @if (a.zone) {
+      <span class="ac-zone">{{ a.zone }}</span>
+    }
+    @if (a.notes) {
+      <p class="ac-notes">{{ a.notes }}</p>
+    }
+    <div class="ac-actions">
+      @if (a.status === 'pending') {
+        <button class="ac-btn start" (click)="updateAssignmentStatus(a.id, 'in_progress')">Iniciar</button>
+      }
+      @if (a.status === 'in_progress') {
+        <button class="ac-btn complete" (click)="updateAssignmentStatus(a.id, 'completed')">Completar</button>
+      }
+      @if (a.status !== 'completed' && a.status !== 'cancelled') {
+        <button class="ac-btn cancel" (click)="updateAssignmentStatus(a.id, 'cancelled')">Cancelar</button>
+      }
+      <button class="ac-btn delete" (click)="confirmDeleteAssignment(a.id)">✕</button>
+    </div>
+  </div>
+</ng-template>
+
+<!-- ── Modal nueva asignación ─────────────────────────────── -->
+@if (showAssignModal) {
+  <div class="modal-overlay" (click)="closeAssignModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">Nueva asignación</h2>
+        <button class="close-btn" (click)="closeAssignModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        @if (assignError) {
+          <div class="modal-error">{{ assignError }}</div>
+        }
+
+        <div class="field">
+          <label>Ruta</label>
+          <select [(ngModel)]="assignForm.route_id">
+            <option value="">Seleccionar ruta...</option>
+            @for (r of activeRoutes; track r.id) {
+              <option [value]="r.id">{{ r.name }} ({{ r.zone }})</option>
+            }
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Vehículo</label>
+          <select [(ngModel)]="assignForm.vehicle_id">
+            <option value="">Seleccionar vehículo...</option>
+            @for (v of allVehicles; track v.id) {
+              <option [value]="v.id">{{ v.plate }} – {{ v.driver_name || 'Sin conductor' }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Fecha</label>
+            <input type="date" [(ngModel)]="assignForm.assigned_date" />
+          </div>
+          <div class="field">
+            <label>Turno</label>
+            <select [(ngModel)]="assignForm.shift">
+              <option value="morning">Mañana</option>
+              <option value="afternoon">Tarde</option>
+              <option value="night">Noche</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Notas (opcional)</label>
+          <textarea [(ngModel)]="assignForm.notes" placeholder="Instrucciones especiales, observaciones..."></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-ghost" (click)="closeAssignModal()">Cancelar</button>
+          <button class="btn-primary" [disabled]="assignLoading" (click)="createAssignment()">
+            {{ assignLoading ? 'Guardando...' : 'Asignar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── Modal nueva ruta ────────────────────────────────────── -->
+@if (showRouteModal) {
+  <div class="modal-overlay" (click)="closeRouteModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">Nueva ruta</h2>
+        <button class="close-btn" (click)="closeRouteModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        @if (routeError) {
+          <div class="modal-error">{{ routeError }}</div>
+        }
+
+        <div class="field">
+          <label>Nombre de la ruta</label>
+          <input type="text" [(ngModel)]="routeForm.name" placeholder="Ej. Zona Norte – Ruta A" />
+        </div>
+
+        <div class="field">
+          <label>Descripción</label>
+          <textarea [(ngModel)]="routeForm.description" placeholder="Barrios o sectores que cubre..."></textarea>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Zona</label>
+            <input type="text" [(ngModel)]="routeForm.zone" placeholder="Norte, Sur, Centro..." />
+          </div>
+          <div class="field">
+            <label>Tipo</label>
+            <select [(ngModel)]="routeForm.type">
+              <option value="collection">Recolección</option>
+              <option value="sweeping">Barrido</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Color en el mapa</label>
+          <div class="color-row">
+            <input type="color" [(ngModel)]="routeForm.color" class="color-input" />
+            <span class="color-preview" [style.background]="routeForm.color">{{ routeForm.color }}</span>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-ghost" (click)="closeRouteModal()">Cancelar</button>
+          <button class="btn-primary" [disabled]="routeLoading" (click)="createRoute()">
+            {{ routeLoading ? 'Guardando...' : 'Crear ruta' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── Confirm deletes ─────────────────────────────────────── -->
+@if (confirmDeleteAssignId) {
+  <div class="modal-overlay" (click)="cancelDeleteAssignment()">
+    <div class="modal confirm-modal" (click)="$event.stopPropagation()">
+      <div class="confirm-icon">⚠</div>
+      <h3>¿Eliminar asignación?</h3>
+      <p>Se eliminará permanentemente esta asignación de ruta.</p>
+      <div class="modal-footer" style="justify-content: center; padding: 16px 0 0; border: none;">
+        <button class="btn-ghost" (click)="cancelDeleteAssignment()">Cancelar</button>
+        <button class="btn-danger" (click)="doDeleteAssignment()">Eliminar</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (confirmDeleteRouteId) {
+  <div class="modal-overlay" (click)="cancelDeleteRoute()">
+    <div class="modal confirm-modal" (click)="$event.stopPropagation()">
+      <div class="confirm-icon">⚠</div>
+      <h3>¿Eliminar ruta?</h3>
+      <p>Se eliminarán también todas las asignaciones asociadas a esta ruta.</p>
+      <div class="modal-footer" style="justify-content: center; padding: 16px 0 0; border: none;">
+        <button class="btn-ghost" (click)="cancelDeleteRoute()">Cancelar</button>
+        <button class="btn-danger" (click)="doDeleteRoute()">Eliminar</button>
+      </div>
+    </div>
+  </div>
+}

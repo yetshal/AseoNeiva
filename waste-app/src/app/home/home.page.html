@@ -1,0 +1,127 @@
+<ion-header [translucent]="true" class="home-header">
+  <ion-toolbar>
+    <div class="header-content">
+      <div class="user-info">
+        <span class="greeting">Hola,</span>
+        <span class="user-name">{{ user?.name || 'Usuario' }}</span>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" (click)="goToNotifications()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <span class="notification-dot"></span>
+        </button>
+        <button class="icon-btn" (click)="goToProfile()">
+          <div class="avatar">{{ getUserInitials() }}</div>
+        </button>
+      </div>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="home-content">
+  <!-- Address Section -->
+  <div class="address-section">
+    <div class="address-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+        <circle cx="12" cy="10" r="3"/>
+      </svg>
+    </div>
+    <div class="address-text">
+      <span class="address-label">Tu ubicación</span>
+      <span class="address-value">{{ user?.address || 'Sin dirección registrada' }}</span>
+    </div>
+  </div>
+
+  <!-- ETA Card -->
+  <div class="eta-card">
+    <div class="eta-header">
+      <span class="eta-title">El camión está en camino</span>
+      <span class="eta-badge">En tiempo</span>
+    </div>
+    <div class="eta-body">
+      <div class="eta-item">
+        <span class="eta-value">{{ estimatedMinutes }}</span>
+        <span class="eta-unit">min</span>
+      </div>
+      <div class="eta-divider"></div>
+      <div class="eta-item">
+        <span class="eta-value">{{ estimatedMeters }}</span>
+        <span class="eta-unit">m</span>
+      </div>
+    </div>
+    <div class="eta-footer">
+      <span>Llegará aproximadamente a las {{ nextCollectionTime }}</span>
+    </div>
+  </div>
+
+  <!-- Time to Take Trash -->
+  <div class="trash-alert" [class.active]="isTimeToTakeTrash">
+    <div class="trash-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+      </svg>
+    </div>
+    <div class="trash-text">
+      <span class="trash-title">¡Es hora de sacar la basura!</span>
+      <span class="trash-subtitle">El camión pasará pronto por tu zona</span>
+    </div>
+  </div>
+
+  <!-- Schedule Section -->
+  <div class="schedule-section">
+    <h2 class="section-title">Horario de recolección</h2>
+    <div class="schedule-list">
+      @for (schedule of collectionSchedule; track schedule.day) {
+        <div class="schedule-item">
+          <div class="schedule-day">{{ schedule.day }}</div>
+          <div class="schedule-time">{{ schedule.time }}</div>
+          <div class="schedule-zone">{{ schedule.zone }}</div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Points & Streak Section -->
+  <div class="gamification-section">
+    <div class="gamification-card points">
+      <div class="g-icon">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+        </svg>
+      </div>
+      <div class="g-content">
+        <span class="g-value">{{ user?.points || currentPoints }}</span>
+        <span class="g-label">Puntos</span>
+      </div>
+    </div>
+
+    <div class="gamification-card streak">
+      <div class="g-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+      </div>
+      <div class="g-content">
+        <span class="g-value">{{ user?.streak || currentStreak }} días</span>
+        <span class="g-label">Racha actual</span>
+      </div>
+    </div>
+
+    <div class="gamification-card record">
+      <div class="g-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="8" r="7"/>
+          <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+        </svg>
+      </div>
+      <div class="g-content">
+        <span class="g-value">{{ recordStreak }} días</span>
+        <span class="g-label">Récord</span>
+      </div>
+    </div>
+  </div>
+</ion-content>

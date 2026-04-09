@@ -1,0 +1,202 @@
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Personal</h1>
+      <p class="page-sub">Gestión del personal con acceso al dashboard corporativo</p>
+    </div>
+    <button class="btn-primary" (click)="openCreate()">+ Nuevo usuario</button>
+  </div>
+
+  <!-- ── Tabla ───────────────────────────────────────────── -->
+  <div class="table-card">
+    <div class="table-toolbar">
+      <div class="toolbar-left">
+        <span class="table-title">Usuarios del sistema</span>
+        <span class="table-count">{{ total | number }} registros</span>
+      </div>
+      <div class="toolbar-right">
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Buscar por nombre o correo..."
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearch()" />
+        <select class="filter-select" [(ngModel)]="roleFilter" (ngModelChange)="onFilter()">
+          <option value="">Todos los roles</option>
+          <option value="superadmin">Super Admin</option>
+          <option value="admin">Administrador</option>
+          <option value="operator">Operador</option>
+        </select>
+        <select class="filter-select" [(ngModel)]="activeFilter" (ngModelChange)="onFilter()">
+          <option value="">Todos los estados</option>
+          <option value="true">Activo</option>
+          <option value="false">Inactivo</option>
+        </select>
+      </div>
+    </div>
+
+    @if (error) {
+      <div class="error-row">{{ error }}</div>
+    }
+
+    @if (loading) {
+      <div class="loading-row">Cargando personal...</div>
+    } @else if (staff.length === 0) {
+      <div class="empty-row">No se encontraron usuarios.</div>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Correo</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th>Registro</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of staff; track m.id) {
+            <tr>
+              <td class="name-cell">
+                <div class="avatar" [class.inactive]="!m.is_active">
+                  {{ m.name.charAt(0).toUpperCase() }}
+                </div>
+                <span [class.dim]="!m.is_active">{{ m.name }}</span>
+                @if (m.id === currentAdmin?.id) {
+                  <span class="self-badge">Tú</span>
+                }
+              </td>
+              <td class="muted">{{ m.email }}</td>
+              <td>
+                <span class="role-pill" [class]="m.role">{{ roleLabel(m.role) }}</span>
+              </td>
+              <td>
+                <span class="pill" [class]="m.is_active ? 'active' : 'inactive'">
+                  {{ m.is_active ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td class="muted">{{ m.created_at | date:'dd/MM/yyyy' }}</td>
+              <td>
+                <div class="action-row">
+                  @if (canManage(m)) {
+                    <button class="action-btn" (click)="openEdit(m)">Editar</button>
+                    <button class="action-btn toggle" (click)="toggleActive(m)">
+                      {{ m.is_active ? 'Desactivar' : 'Activar' }}
+                    </button>
+                    @if (isSuperAdmin()) {
+                      <button class="action-btn danger" (click)="confirmDelete(m.id)">Eliminar</button>
+                    }
+                  } @else {
+                    <span class="muted" style="font-size: 12px;">—</span>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      @if (totalPages > 1) {
+        <div class="pagination">
+          <button class="page-btn" [disabled]="page === 1" (click)="goToPage(page - 1)">‹</button>
+          @for (p of pages; track p) {
+            <button class="page-btn" [class.active]="p === page" (click)="goToPage(p)">{{ p }}</button>
+          }
+          <button class="page-btn" [disabled]="page === totalPages" (click)="goToPage(page + 1)">›</button>
+        </div>
+      }
+    }
+  </div>
+
+</div>
+
+<!-- ── Modal crear/editar ──────────────────────────────────── -->
+@if (showModal) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">{{ editingId ? 'Editar usuario' : 'Nuevo usuario' }}</h2>
+        <button class="close-btn" (click)="closeModal()">✕</button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="save()" class="modal-form">
+
+        @if (modalError) {
+          <div class="modal-error">{{ modalError }}</div>
+        }
+
+        <div class="field">
+          <label>Nombre completo</label>
+          <input type="text" formControlName="name" placeholder="Ej. Juan Pérez" />
+          @if (form.get('name')?.invalid && form.get('name')?.touched) {
+            <span class="field-error">El nombre es obligatorio (mínimo 2 caracteres)</span>
+          }
+        </div>
+
+        <div class="field">
+          <label>Correo electrónico</label>
+          <input type="email" formControlName="email" placeholder="correo@empresa.com" />
+          @if (form.get('email')?.invalid && form.get('email')?.touched) {
+            <span class="field-error">Ingresa un correo válido</span>
+          }
+        </div>
+
+        <div class="field">
+          <label>{{ editingId ? 'Nueva contraseña (dejar vacío para no cambiar)' : 'Contraseña' }}</label>
+          <input type="password" formControlName="password" placeholder="Mínimo 8 caracteres" />
+          @if (form.get('password')?.invalid && form.get('password')?.touched) {
+            <span class="field-error">La contraseña debe tener al menos 8 caracteres</span>
+          }
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Rol</label>
+            <select formControlName="role">
+              <option value="operator">Operador</option>
+              <option value="admin">Administrador</option>
+              @if (isSuperAdmin()) {
+                <option value="superadmin">Super Admin</option>
+              }
+            </select>
+          </div>
+
+          @if (editingId) {
+            <div class="field">
+              <label>Estado</label>
+              <select formControlName="is_active">
+                <option [ngValue]="true">Activo</option>
+                <option [ngValue]="false">Inactivo</option>
+              </select>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-ghost" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn-primary" [disabled]="modalLoading">
+            {{ modalLoading ? 'Guardando...' : (editingId ? 'Guardar cambios' : 'Crear usuario') }}
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ── Confirm delete ──────────────────────────────────────── -->
+@if (confirmDeleteId) {
+  <div class="modal-overlay" (click)="cancelDelete()">
+    <div class="modal confirm-modal" (click)="$event.stopPropagation()">
+      <div class="confirm-icon">⚠</div>
+      <h3>¿Eliminar usuario?</h3>
+      <p>Esta acción no se puede deshacer. El usuario perderá acceso permanentemente.</p>
+      <div class="modal-footer">
+        <button class="btn-ghost" (click)="cancelDelete()">Cancelar</button>
+        <button class="btn-danger" (click)="doDelete()">Eliminar</button>
+      </div>
+    </div>
+  </div>
+}

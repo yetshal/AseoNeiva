@@ -1,0 +1,272 @@
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Análisis</h1>
+      <p class="page-sub">Estadísticas detalladas del sistema para los {{ periodLabel() }}</p>
+    </div>
+    <div class="header-controls">
+      <select class="period-select" [(ngModel)]="period" (ngModelChange)="onPeriodChange()">
+        <option value="week">Última semana</option>
+        <option value="month">Último mes</option>
+        <option value="year">Último año</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab" [class.active]="activeTab === 'reports'" (click)="setTab('reports')">
+      Reportes ciudadanos
+    </button>
+    <button class="tab" [class.active]="activeTab === 'fleet'" (click)="setTab('fleet')">
+      Flota y recolección
+    </button>
+    <button class="tab" [class.active]="activeTab === 'users'" (click)="setTab('users')">
+      Participación ciudadana
+    </button>
+  </div>
+
+  @if (loading) {
+    <div class="loading-state">Calculando estadísticas...</div>
+  } @else if (error) {
+    <div class="error-state">{{ error }}</div>
+  } @else {
+
+    <!-- ═════════════════ TAB: REPORTES ═════════════════ -->
+    @if (activeTab === 'reports' && reportsData) {
+      <div class="analysis-content">
+
+        <div class="kpi-row">
+          <div class="kpi-mini">
+            <span class="kpi-m-label">Total reportes</span>
+            <span class="kpi-m-value">{{ reportsData.total | number }}</span>
+          </div>
+          <div class="kpi-mini pending">
+            <span class="kpi-m-label">Pendientes</span>
+            <span class="kpi-m-value">{{ countByStatus(reportsData.byStatus, 'pending') }}</span>
+          </div>
+          <div class="kpi-mini reviewing">
+            <span class="kpi-m-label">En revisión</span>
+            <span class="kpi-m-value">{{ countByStatus(reportsData.byStatus, 'reviewing') }}</span>
+          </div>
+          <div class="kpi-mini resolved">
+            <span class="kpi-m-label">Resueltos</span>
+            <span class="kpi-m-value">{{ countByStatus(reportsData.byStatus, 'resolved') }}</span>
+          </div>
+        </div>
+
+        <div class="charts-row">
+
+          <!-- Tipos de reporte -->
+          <div class="chart-card">
+            <span class="chart-title">Reportes por tipo</span>
+            @if (!reportsData.byType.length) {
+              <p class="chart-empty">Sin datos en el período</p>
+            } @else {
+              <div class="bar-chart">
+                @for (t of reportsData.byType; track t.type) {
+                  <div class="bc-item">
+                    <span class="bc-label">{{ t.type }}</span>
+                    <div class="bc-track">
+                      <div class="bc-fill" [style.width.%]="barWidth(+t.count, maxReportType)"></div>
+                    </div>
+                    <span class="bc-count">{{ t.count }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Estado de reportes -->
+          <div class="chart-card">
+            <span class="chart-title">Estado de reportes</span>
+            @if (!reportsData.byStatus.length) {
+              <p class="chart-empty">Sin datos en el período</p>
+            } @else {
+              <div class="status-pills-list">
+                @for (s of reportsData.byStatus; track s.status) {
+                  <div class="status-pill-row">
+                    <span class="spill" [class]="s.status">{{ statusLabel(s.status) }}</span>
+                    <span class="spill-count">{{ s.count }}</span>
+                    <div class="spill-track">
+                      <div class="spill-fill" [class]="s.status"
+                           [style.width.%]="barWidth(+s.count, reportsData.total)"></div>
+                    </div>
+                    <span class="spill-pct">{{ barWidth(+s.count, reportsData.total) }}%</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+        </div>
+
+        <!-- Línea de tiempo por día -->
+        @if (reportsData.byDay.length) {
+          <div class="chart-card wide">
+            <span class="chart-title">Reportes por día</span>
+            <div class="timeline">
+              @for (d of reportsData.byDay; track d.day) {
+                <div class="tl-item" [title]="d.count + ' reportes'">
+                  <div class="tl-bar" [style.height.px]="barWidth(+d.count, maxDay(reportsData.byDay)) * 0.6 + 4"></div>
+                  <span class="tl-label">{{ d.day | date:'dd/MM' }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+      </div>
+    }
+
+    <!-- ═════════════════ TAB: FLOTA ═════════════════════ -->
+    @if (activeTab === 'fleet' && fleetData) {
+      <div class="analysis-content">
+
+        <div class="kpi-row">
+          <div class="kpi-mini">
+            <span class="kpi-m-label">Recolecciones</span>
+            <span class="kpi-m-value">{{ fleetData.collections | number }}</span>
+          </div>
+          <div class="kpi-mini km">
+            <span class="kpi-m-label">Kilómetros recorridos</span>
+            <span class="kpi-m-value">{{ fleetData.distanceKm | number:'1.0-1' }} km</span>
+          </div>
+          <div class="kpi-mini fuel">
+            <span class="kpi-m-label">Combustible usado</span>
+            <span class="kpi-m-value">{{ fleetData.fuelUsed | number:'1.0-1' }} L</span>
+          </div>
+          <div class="kpi-mini saved">
+            <span class="kpi-m-label">Combustible ahorrado</span>
+            <span class="kpi-m-value">{{ fleetData.fuelSaved | number:'1.0-1' }} L</span>
+          </div>
+          <div class="kpi-mini co2">
+            <span class="kpi-m-label">CO₂ evitado (est.)</span>
+            <span class="kpi-m-value">{{ fleetData.co2Saved | number:'1.0-1' }} kg</span>
+          </div>
+        </div>
+
+        <div class="charts-row">
+
+          <!-- Estado flota -->
+          <div class="chart-card">
+            <span class="chart-title">Estado actual de vehículos</span>
+            <div class="status-pills-list">
+              @for (s of fleetData.vehicleStatus; track s.status) {
+                <div class="status-pill-row">
+                  <span class="v-badge" [class]="s.status">{{ s.status }}</span>
+                  <span class="spill-count">{{ s.count }}</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Rutas más activas -->
+          <div class="chart-card">
+            <span class="chart-title">Rutas más activas</span>
+            @if (!fleetData.topRoutes.length) {
+              <p class="chart-empty">Sin datos en el período</p>
+            } @else {
+              <div class="bar-chart">
+                @for (r of fleetData.topRoutes; track r.name) {
+                  <div class="bc-item">
+                    <span class="bc-label">{{ r.name }}</span>
+                    <div class="bc-track">
+                      <div class="bc-fill blue" [style.width.%]="barWidth(+r.collections, maxRouteCollections)"></div>
+                    </div>
+                    <span class="bc-count">{{ r.collections }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+        </div>
+
+      </div>
+    }
+
+    <!-- ═════════════════ TAB: USUARIOS ══════════════════ -->
+    @if (activeTab === 'users' && usersData) {
+      <div class="analysis-content">
+
+        <div class="kpi-row">
+          <div class="kpi-mini">
+            <span class="kpi-m-label">Nuevos usuarios</span>
+            <span class="kpi-m-value">{{ usersData.newUsers | number }}</span>
+          </div>
+          <div class="kpi-mini pts">
+            <span class="kpi-m-label">Puntos totales</span>
+            <span class="kpi-m-value">{{ usersData.points.total | number }}</span>
+          </div>
+          <div class="kpi-mini avg">
+            <span class="kpi-m-label">Puntos promedio</span>
+            <span class="kpi-m-value">{{ usersData.points.avg | number:'1.0-1' }}</span>
+          </div>
+          <div class="kpi-mini streak">
+            <span class="kpi-m-label">Racha máxima</span>
+            <span class="kpi-m-value">{{ usersData.streaks.max }} días</span>
+          </div>
+          <div class="kpi-mini streak-avg">
+            <span class="kpi-m-label">Racha promedio</span>
+            <span class="kpi-m-value">{{ usersData.streaks.avg | number:'1.0-1' }} días</span>
+          </div>
+        </div>
+
+        <div class="charts-row">
+
+          <!-- Distribución por nivel -->
+          <div class="chart-card">
+            <span class="chart-title">Distribución por nivel</span>
+            @if (!usersData.levelDist.length) {
+              <p class="chart-empty">Sin datos disponibles</p>
+            } @else {
+              <div class="bar-chart">
+                @for (l of usersData.levelDist; track l.level) {
+                  <div class="bc-item">
+                    <span class="bc-label">Nivel {{ l.level }}</span>
+                    <div class="bc-track">
+                      <div class="bc-fill purple" [style.width.%]="barWidth(+l.count, maxLevel)"></div>
+                    </div>
+                    <span class="bc-count">{{ l.count }} usuarios</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Puntos máximos -->
+          <div class="chart-card">
+            <span class="chart-title">Resumen de puntos</span>
+            <div class="pts-summary">
+              <div class="pts-row">
+                <span class="pts-label">Total entregados</span>
+                <span class="pts-value">{{ usersData.points.total | number }}</span>
+              </div>
+              <div class="pts-row">
+                <span class="pts-label">Promedio por usuario</span>
+                <span class="pts-value">{{ usersData.points.avg | number:'1.0-1' }}</span>
+              </div>
+              <div class="pts-row">
+                <span class="pts-label">Puntaje máximo</span>
+                <span class="pts-value">{{ usersData.points.max | number }}</span>
+              </div>
+              <div class="pts-row">
+                <span class="pts-label">Racha promedio activos</span>
+                <span class="pts-value">{{ usersData.streaks.avg | number:'1.0-1' }} días</span>
+              </div>
+              <div class="pts-row">
+                <span class="pts-label">Racha record</span>
+                <span class="pts-value">{{ usersData.streaks.max }} días</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    }
+
+  }
+</div>

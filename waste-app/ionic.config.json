@@ -1,0 +1,7 @@
+{
+  "name": "waste-app",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}

@@ -1,0 +1,9 @@
+{
+	"appId": "gov.aseoneiva.app",
+	"appName": "waste-app",
+	"webDir": "www",
+	"server": {
+		"androidScheme": "https",
+		"cleartext": true
+	}
+}

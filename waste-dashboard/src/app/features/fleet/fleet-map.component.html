@@ -1,0 +1,158 @@
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Mapa de flota</h1>
+      <p class="page-sub">Ubicación y estado de los vehículos en tiempo real</p>
+    </div>
+  </div>
+
+  <!-- ── Stats rápidas ──────────────────────────────────── -->
+  <div class="fleet-stats">
+    <div class="fstat active">
+      <span class="fstat-dot"></span>
+      <span class="fstat-label">Activos</span>
+      <span class="fstat-num">{{ activeCount }}</span>
+    </div>
+    <div class="fstat maintenance">
+      <span class="fstat-dot"></span>
+      <span class="fstat-label">Mantenimiento</span>
+      <span class="fstat-num">{{ maintenanceCount }}</span>
+    </div>
+    <div class="fstat off">
+      <span class="fstat-dot"></span>
+      <span class="fstat-label">Fuera de servicio</span>
+      <span class="fstat-num">{{ offCount }}</span>
+    </div>
+    <div class="fstat total">
+      <span class="fstat-dot"></span>
+      <span class="fstat-label">Total flota</span>
+      <span class="fstat-num">{{ vehicles.length }}</span>
+    </div>
+  </div>
+
+  <!-- ── Contenido principal: mapa + panel lateral ─────── -->
+  <div class="map-layout">
+
+    <!-- Panel lateral izquierdo -->
+    <div class="sidebar-panel">
+
+      <div class="panel-toolbar">
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Buscar placa o conductor..."
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearch()" />
+        <select class="filter-select" [(ngModel)]="statusFilter" (ngModelChange)="onStatusFilter()">
+          <option value="">Todos</option>
+          <option value="active">Activos</option>
+          <option value="maintenance">Mantenimiento</option>
+          <option value="out_of_service">Fuera de servicio</option>
+        </select>
+      </div>
+
+      @if (loading) {
+        <div class="panel-loading">Cargando vehículos...</div>
+      } @else if (error) {
+        <div class="panel-error">{{ error }}</div>
+      } @else if (vehicles.length === 0) {
+        <div class="panel-empty">No se encontraron vehículos.</div>
+      } @else {
+        <div class="vehicle-list">
+          @for (v of vehicles; track v.id) {
+            <div class="vehicle-item"
+                 [class.selected]="selectedVehicle?.vehicle?.id === v.id"
+                 (click)="selectVehicle(v.id)">
+              <div class="v-status-dot" [style.background]="statusColor(v.status)"></div>
+              <div class="v-info">
+                <span class="v-plate">{{ v.plate }}</span>
+                <span class="v-driver">{{ v.driver_name || 'Sin conductor' }}</span>
+              </div>
+              <div class="v-right">
+                <span class="v-type">{{ typeLabel(v.type) }}</span>
+                <span class="v-badge" [class]="v.status">{{ statusLabel(v.status) }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Detalle del vehículo seleccionado -->
+      @if (selectedVehicle) {
+        <div class="vehicle-detail">
+          <div class="detail-header">
+            <span class="detail-title">{{ selectedVehicle.vehicle.plate }}</span>
+            <button class="close-btn" (click)="closeDetail()">✕</button>
+          </div>
+
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="di-label">Conductor</span>
+              <span class="di-value">{{ selectedVehicle.vehicle.driver_name || '—' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="di-label">Teléfono</span>
+              <span class="di-value">{{ selectedVehicle.vehicle.driver_phone || '—' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="di-label">Modelo</span>
+              <span class="di-value">{{ selectedVehicle.vehicle.model || '—' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="di-label">Tipo</span>
+              <span class="di-value">{{ typeLabel(selectedVehicle.vehicle.type) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="di-label">Estado</span>
+              <span class="v-badge" [class]="selectedVehicle.vehicle.status">
+                {{ statusLabel(selectedVehicle.vehicle.status) }}
+              </span>
+            </div>
+            <div class="detail-item">
+              <span class="di-label">Capacidad combustible</span>
+              <span class="di-value">{{ selectedVehicle.vehicle.fuel_capacity }} L</span>
+            </div>
+            @if (selectedVehicle.vehicle.last_seen_at) {
+              <div class="detail-item full">
+                <span class="di-label">Última actualización GPS</span>
+                <span class="di-value">{{ selectedVehicle.vehicle.last_seen_at | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+            }
+          </div>
+
+          @if (selectedVehicle.assignments.length > 0) {
+            <div class="detail-section">
+              <span class="detail-section-title">Últimas asignaciones</span>
+              @for (a of selectedVehicle.assignments; track a.id) {
+                <div class="assign-row">
+                  <span class="assign-date">{{ a.assigned_date | date:'dd/MM' }}</span>
+                  <span class="assign-route">{{ a.route_name }}</span>
+                  <span class="assign-badge" [class]="a.status">{{ a.status }}</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+    </div>
+
+    <!-- Mapa -->
+    <div class="map-wrapper">
+      @if (mapLoading) {
+        <div class="map-placeholder">
+          <div class="mp-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"/>
+            </svg>
+          </div>
+          <span>Cargando mapa...</span>
+        </div>
+      }
+      <div #mapContainer class="google-map"></div>
+    </div>
+
+  </div>
+</div>

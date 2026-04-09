@@ -1,0 +1,164 @@
+.page { max-width: 1200px; }
+
+.page-header { margin-bottom: 20px; }
+.page-title  { font-size: 20px; font-weight: 500; letter-spacing: -0.4px; margin: 0 0 4px; }
+.page-sub    { font-size: 13px; color: #888; margin: 0; }
+
+// ── KPI Grid ──────────────────────────────────────────────────
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.kpi-card {
+  background: white;
+  border: 1px solid #ebebeb;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: box-shadow 0.15s;
+
+  &.clickable {
+    cursor: pointer;
+    &:hover { box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  }
+}
+
+.kpi-icon {
+  width: 36px; height: 36px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  svg { width: 18px; height: 18px; }
+
+  &.users   { background: #E1F5EE; color: #0F6E56; }
+  &.reports { background: #FAEEDA; color: #854F0B; }
+  &.fleet   { background: #E6F1FB; color: #185FA5; }
+  &.fuel    { background: #F3EEFF; color: #6D28D9; }
+}
+
+.kpi-body {
+  flex: 1;
+  display: flex; flex-direction: column; gap: 1px;
+}
+
+.kpi-label { font-size: 11px; color: #999; }
+.kpi-value { font-size: 22px; font-weight: 500; letter-spacing: -0.5px; }
+
+.kpi-sub {
+  font-size: 11px; color: #888;
+  &.pending { color: #854F0B; }
+}
+
+.kpi-arrow { font-size: 14px; color: #ccc; margin-left: auto; }
+
+// ── Métricas secundarias ──────────────────────────────────────
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.metric-card {
+  background: #f0f0ed;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+.metric-title { font-size: 11px; color: #888; }
+.metric-big   { font-size: 26px; font-weight: 500; letter-spacing: -0.6px; }
+.metric-hint  { font-size: 11px; color: #aaa; }
+
+.metric-bar-wrap {
+  height: 4px; background: #e0e0db; border-radius: 2px; overflow: hidden;
+}
+.metric-bar-fill {
+  height: 100%; background: #1D9E75; border-radius: 2px;
+  transition: width 0.6s ease;
+  &.green { background: #1D9E75; }
+  &.blue  { background: #185FA5; }
+}
+
+// ── Fila inferior ─────────────────────────────────────────────
+.bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.list-card {
+  background: white;
+  border: 1px solid #ebebeb;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.list-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.list-title { font-size: 13px; font-weight: 500; }
+
+.link-btn {
+  font-size: 12px; color: #1D9E75;
+  background: none; border: none; cursor: pointer; padding: 0;
+  &:hover { text-decoration: underline; }
+}
+
+// Top usuarios
+.rank-list { display: flex; flex-direction: column; gap: 8px; }
+
+.rank-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid #f5f5f3;
+  &:last-child { border-bottom: none; }
+}
+
+.rank-pos {
+  width: 18px; font-size: 12px; color: #bbb; font-weight: 500;
+  text-align: center; flex-shrink: 0;
+}
+
+.rank-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: #E1F5EE; color: #0F6E56;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; flex-shrink: 0;
+}
+
+.rank-info { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.rank-name { font-size: 13px; font-weight: 500; }
+.rank-meta { font-size: 11px; color: #999; }
+.rank-pts  { font-size: 13px; font-weight: 500; color: #1D9E75; }
+
+// Reportes por tipo
+.type-list { display: flex; flex-direction: column; gap: 10px; }
+
+.type-item {
+  display: flex; align-items: center; gap: 8px;
+}
+
+.type-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #1D9E75; flex-shrink: 0;
+}
+
+.type-name  { flex: 1; font-size: 13px; color: #555; }
+.type-count { font-size: 13px; font-weight: 500; }
+
+.empty-hint {
+  font-size: 13px; color: #aaa;
+  text-align: center; padding: 20px 0; margin: 0;
+}
+
+// ── Estados ───────────────────────────────────────────────────
+.loading-state, .error-state {
+  padding: 60px; text-align: center; font-size: 13px; color: #aaa;
+}
+.error-state { color: #D85A30; }
