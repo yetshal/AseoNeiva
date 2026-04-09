@@ -1,35 +1,37 @@
 # Waste Backend
 
-Este es el API backend para el sistema de gestión de residuos AseoNeiva, construido con Express.js y TypeScript.
+API REST para el sistema de gestión de residuos AseoNeiva, desarrollada con Express.js y TypeScript.
 
 ## Requisitos Previos
 
 - Node.js (v18 o superior)
 - npm o yarn
-- Base de datos PostgreSQL
+- PostgreSQL (v14 o superior)
 
 ## Instalación
 
-1. Instalar dependencias:
-   ```bash
-   cd waste-backend
-   npm install
-   ```
+```bash
+cd waste-backend
+npm install
+```
 
-2. Configurar variables de entorno en `.env`:
-   ```env
-   PORT=3000
-   DB_HOST=localhost
-   DB_PORT=5432
-   DB_NAME=waste_db
-   DB_USER=tu_usuario
-   DB_PASSWORD=tu_contraseña
-   JWT_SECRET=tu_clave_secreta
-   ```
+## Configuración
+
+Crear archivo `.env` en la raíz del proyecto:
+
+```env
+PORT=3000
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=waste_db
+DB_USER=tu_usuario
+DB_PASSWORD=tu_contraseña
+JWT_SECRET=tu_clave_secreta
+JWT_EXPIRES_IN=7d
+CORS_ORIGIN=http://localhost:4200
+```
 
 ## Desarrollo
-
-Ejecutar el servidor de desarrollo con recarga automática:
 
 ```bash
 npm run dev
@@ -37,19 +39,10 @@ npm run dev
 
 El servidor iniciara en `http://localhost:3000`.
 
-## Compilacion
-
-Compilar TypeScript a JavaScript:
+## Producción
 
 ```bash
 npm run build
-```
-
-## Produccion
-
-Ejecutar la version compilada para produccion:
-
-```bash
 npm start
 ```
 
@@ -58,36 +51,69 @@ npm start
 ```
 waste-backend/
 ├── src/
-│   ├── index.ts          # Punto de entrada
+│   ├── index.ts              # Punto de entrada
+│   ├── app.ts                # Configuración de Express
 │   ├── config/
-│   │   └── db.ts         # Configuracion de base de datos
+│   │   └── db.ts             # Conexión a PostgreSQL
 │   ├── middleware/
-│   │   └── auth.ts       # Middleware de autenticacion
-│   └── modules/
-│       ├── auth/         # Rutas y controladores de autenticacion
-│       └── users/        # Rutas y controladores de usuarios
-├── .env                  # Variables de entorno (rastreado)
-└── package.json
+│   │   ├── auth.ts           # Autenticación JWT
+│   │   └── error.ts          # Manejo de errores
+│   ├── modules/
+│   │   ├── auth/             # Autenticación
+│   │   │   ├── controller.ts
+│   │   │   ├── model.ts
+│   │   │   ├── routes.ts
+│   │   │   └── validation.ts
+│   │   └── users/            # Gestión de usuarios
+│   │       ├── controller.ts
+│   │       ├── model.ts
+│   │       ├── routes.ts
+│   │       └── validation.ts
+│   └── utils/
+│       └── response.ts       # Utilitarios de respuesta
+├── .env
+├── package.json
+└── tsconfig.json
 ```
 
-## Dependencias
+## Dependencias Principales
 
 - **express**: Framework web
 - **pg**: Cliente PostgreSQL
-- **bcrypt**: Encriptacion de contrasenas
-- **jsonwebtoken**: Autenticacion JWT
-- **joi**: Validacion de solicitudes
-- **cors**: Intercambio de recursos entre origenes
-- **dotenv**: Gestion de variables de entorno
+- **bcrypt**: Encriptación de contraseñas
+- **jsonwebtoken**: Autenticación JWT
+- **joi**: Validación de datos
+- **cors**: CORS
+- **dotenv**: Variables de entorno
 
 ## Endpoints del API
 
-### Autenticacion
-- `POST /api/auth/login` - Inicio de sesion de usuario
-- `POST /api/auth/register` - Registro de usuario
+### Autenticación
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Registrar nuevo usuario |
+| POST | `/api/auth/login` | Iniciar sesión |
+| GET | `/api/auth/profile` | Obtener perfil del usuario |
 
 ### Usuarios
-- `GET /api/users` - Listar todos los usuarios
-- `GET /api/users/:id` - Obtener usuario por ID
-- `PUT /api/users/:id` - Actualizar usuario
-- `DELETE /api/users/:id` - Eliminar usuario
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/users` | Listar todos los usuarios |
+| GET | `/api/users/:id` | Obtener usuario por ID |
+| PUT | `/api/users/:id` | Actualizar usuario |
+| DELETE | `/api/users/:id` | Eliminar usuario |
+
+## Scripts Disponibles
+
+| Comando | Descripción |
+|---------|-------------|
+| `npm run dev` | Iniciar servidor en desarrollo |
+| `npm run build` | Compilar TypeScript |
+| `npm start` | Ejecutar versión compilada |
+| `npm run lint` | Verificar código |
+
+## Licencia
+
+MIT

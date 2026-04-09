@@ -1,6 +1,6 @@
 # Waste Dashboard
 
-Este es el panel de administracion frontend para el sistema de gestion de residuos AseoNeiva, construido con Angular 18.
+Panel de administración web para el sistema de gestión de residuos AseoNeiva, desarrollado con Angular.
 
 ## Requisitos Previos
 
@@ -10,65 +10,37 @@ Este es el panel de administracion frontend para el sistema de gestion de residu
 
 ## Instalación
 
-1. Instalar dependencias:
-   ```bash
-   cd waste-dashboard
-   npm install
-   ```
+```bash
+cd waste-dashboard
+npm install
+```
 
-2. Configurar variables de entorno en `src/environments/environment.ts`:
-   ```typescript
-   export const environment = {
-     production: false,
-     apiUrl: 'http://localhost:3000/api'
-   };
-   ```
+## Configuración
+
+Editar `src/environments/environment.ts`:
+
+```typescript
+export const environment = {
+  production: false,
+  apiUrl: 'http://localhost:3000/api'
+};
+```
 
 ## Desarrollo
-
-Ejecutar el servidor de desarrollo:
 
 ```bash
 ng serve
 ```
 
-Navegar a `http://localhost:4200/`. La aplicacion se recargara automaticamente si cambias alguno de los archivos fuente.
+Navegar a `http://localhost:4200/`.
 
-## Generacion de Codigo
-
-Ejecutar `ng generate component nombre-componente` para generar un nuevo componente. Tambien puedes usar:
-
-```bash
-ng generate directive|pipe|service|class|guard|interface|enum|module
-```
-
-## Compilacion
-
-Compilar para produccion:
+## Producción
 
 ```bash
 ng build
 ```
 
-Los archivos compilados se almacenaran en el directorio `dist/`.
-
-## Pruebas Unitarias
-
-Ejecutar pruebas unitarias con [Karma](https://karma-runner.github.io):
-
-```bash
-ng test
-```
-
-## Pruebas de Extremo a Extremo
-
-Ejecutar pruebas e2e con una plataforma de tu eleccion:
-
-```bash
-ng e2e
-```
-
-Para usar este comando, primero debes agregar un paquete que implemente capacidades de pruebas de extremo a extremo.
+Los archivos compilados se almacenan en `dist/`.
 
 ## Estructura del Proyecto
 
@@ -76,27 +48,39 @@ Para usar este comando, primero debes agregar un paquete que implemente capacida
 waste-dashboard/
 ├── src/
 │   ├── app/
-│   │   ├── core/              # Servicios centrales y guardias
-│   │   │   ├── guards/        # Guardias de ruta
-│   │   │   ├── interceptors/   # Interceptores HTTP
-│   │   │   └── services/       # Servicios de API
-│   │   ├── features/          # Modulos de funciones
-│   │   │   ├── auth/          # Modulo de autenticacion
-│   │   │   └── users/         # Modulo de usuarios
-│   │   ├── layout/            # Componentes de estructura
-│   │   └── shared/            # Componentes y modelos compartidos
-│   ├── environments/          # Archivos de entorno
-│   └── styles.scss            # Estilos globales
-└── angular.json
+│   │   ├── core/               # Servicios, guards e interceptors
+│   │   │   ├── guards/
+│   │   │   ├── interceptors/
+│   │   │   └── services/
+│   │   ├── features/           # Módulos de funcionalidades
+│   │   │   ├── auth/
+│   │   │   └── users/
+│   │   ├── layout/             # Componentes de estructura
+│   │   └── shared/             # Componentes y modelos compartidos
+│   ├── assets/
+│   ├── environments/
+│   └── styles.scss
+├── angular.json
+└── package.json
 ```
 
 ## Dependencias Principales
 
-- **Angular**: Framework frontend
-- **RxJS**: Programacion reactiva
-- **Angular Router**: Navegacion
-- **Angular Forms**: Formularios reactivos y plantillas
+- **@angular/core**: Framework principal
+- **@angular/material**: Componentes UI
+- **rxjs**: Programación reactiva
+- **chart.js**: Gráficos y visualizaciones
 
-## Mas Ayuda
+## Comandos Útiles
 
-Para mas ayuda sobre Angular CLI, usa `ng help` o consulta la [pagina de referencia de Angular CLI](https://angular.dev/tools/cli).
+| Comando | Descripción |
+|---------|-------------|
+| `ng generate component name` | Generar componente |
+| `ng generate service name` | Generar servicio |
+| `ng generate guard name` | Generar guard |
+| `ng test` | Ejecutar pruebas unitarias |
+| `ng build` | Compilar para producción |
+
+## Licencia
+
+MIT

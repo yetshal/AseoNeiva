@@ -14,19 +14,54 @@ export const routes: Routes = [
     component: MainLayoutComponent,
     canActivate: [authGuard],
     children: [
-      { path: '', redirectTo: 'usuarios', pathMatch: 'full' },
+      { path: '', redirectTo: 'resumen', pathMatch: 'full' },
+
+      // Resumen
+      {
+        path: 'resumen',
+        loadComponent: () =>
+          import('./features/summary/summary.component').then(m => m.SummaryComponent)
+      },
+
+      // Mapa de flota
+      {
+        path: 'mapa',
+        loadComponent: () =>
+          import('./features/fleet/fleet-map.component').then(m => m.FleetMapComponent)
+      },
+
+      // Análisis
+      {
+        path: 'analisis',
+        loadComponent: () =>
+          import('./features/analysis/analysis.component').then(m => m.AnalysisComponent)
+      },
+
+      // Usuarios (ciudadanos)
       {
         path: 'usuarios',
         loadComponent: () =>
-          import('./features/users/users-list/users-list.component')
-            .then(m => m.UsersListComponent)
+          import('./features/users/users-list/users-list.component').then(m => m.UsersListComponent)
       },
       {
         path: 'usuarios/:id',
         loadComponent: () =>
-          import('./features/users/user-detail/user-detail.component')
-            .then(m => m.UserDetailComponent)
-      }
+          import('./features/users/user-detail/user-detail.component').then(m => m.UserDetailComponent)
+      },
+
+      // Planificador de rutas
+      {
+        path: 'rutas',
+        loadComponent: () =>
+          import('./features/route-planner/route-planner.component').then(m => m.RoutePlannerComponent)
+      },
+
+      // Personal (admins del dashboard)
+      {
+        path: 'personal',
+        loadComponent: () =>
+          import('./features/staff/staff.component').then(m => m.StaffComponent)
+      },
     ]
   },
   { path: '**', redirectTo: 'login' }

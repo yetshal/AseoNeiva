@@ -17,6 +17,15 @@ out/
 waste-dashboard/.angular/
 waste-dashboard/.angular/cache/
 
+# Flutter / Dart
+waste-app/.dart_tool/
+waste-app/.packages
+waste-app/.flutter-plugins
+waste-app/.flutter-plugins-dependencies
+waste-app/build/
+waste-app/.symlinks/
+waste-app/pubspec.lock
+
 # IDE
 .idea/
 .vscode/*
@@ -55,6 +64,9 @@ coverage/
 
 # Backend specific
 waste-backend/*.js
+waste-backend/lib/
+waste-backend/obj/
+waste-backend/bin/
 !waste-backend/tsconfig.json
 waste-backend/src/**/*.js
 waste-backend/src/**/*.js.map

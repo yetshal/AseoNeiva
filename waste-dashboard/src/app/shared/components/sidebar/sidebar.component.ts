@@ -34,17 +34,17 @@ export class SidebarComponent {
   }
 
   principalNav: NavItem[] = [
-    { label: 'Resumen',       route: '/dashboard/resumen',  available: false },
-    { label: 'Mapa de flota', route: '/dashboard/mapa',     available: false },
-    { label: 'Análisis',      route: '/dashboard/analisis', available: false },
+    { label: 'Resumen',       route: '/dashboard/resumen',  available: true },
+    { label: 'Mapa de flota', route: '/dashboard/mapa',     available: true },
+    { label: 'Análisis',      route: '/dashboard/analisis', available: true },
   ];
 
   gestionNav: NavItem[] = [
-    { label: 'Usuarios',      route: '/dashboard/usuarios', available: true  },
-    { label: 'Planificador',  route: '/dashboard/rutas',    available: false },
+    { label: 'Usuarios',      route: '/dashboard/usuarios', available: true },
+    { label: 'Planificador',  route: '/dashboard/rutas',    available: true },
   ];
 
   adminNav: NavItem[] = [
-    { label: 'Personal',      route: '/dashboard/personal', available: false },
+    { label: 'Personal',      route: '/dashboard/personal', available: true },
   ];
 }
