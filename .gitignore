@@ -26,6 +26,10 @@ waste-app/build/
 waste-app/.symlinks/
 waste-app/pubspec.lock
 
+# Angular (Flutter web)
+waste-app/.angular/
+waste-app/.angular/cache/
+
 # IDE
 .idea/
 .vscode/*
