@@ -2,12 +2,12 @@
 -- PostgreSQL database dump
 --
 
-\restrict ODZWrAaaaJIFH0AFpd9hgsoiSPn8VR3wdgdvU8CqhilTujoY5VvGTFwxoLVKRfh
+\restrict nci5wutlQrWeQh1M595wJs7OSza539Y0qOy5xOHTLFpfcM76X3RIdXpbwfndMci
 
 -- Dumped from database version 18.3
 -- Dumped by pg_dump version 18.3
 
--- Started on 2026-03-26 15:41:29
+-- Started on 2026-04-09 01:55:20
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -115,6 +115,7 @@ ALTER TABLE public.users OWNER TO waste_admin;
 
 COPY public.dashboard_admins (id, name, email, password_hash, role, is_active, created_at) FROM stdin;
 f752d643-8830-42f8-8afa-5ae47e006549	Administrador	admin@aseo.gov.co	$2b$10$lKX5IfXXUBiDBn26v71vOuu4nfAs5kE7M9lKkMhJpVtZyd5TjUEcq	superadmin	t	2026-03-26 13:36:57.428944-05
+00e293ee-42d5-4168-8dcc-2934bbd110b2	Julian Montero	julianmontero@gmail.com	$2b$10$frfZB.QyNpn81McbiiaNEOSieZb1HbQYGb706hh9cLB2sEfZQB3mC	operator	t	2026-04-09 00:19:47.300024-05
 \.
 
 
@@ -143,10 +144,16 @@ ac8cb91b-d4e0-438e-9547-d8d2067d2c2b	6ae3c30e-f5fc-4e75-bca8-e9b1607946f0	Punto 
 --
 
 COPY public.users (id, name, email, password_hash, phone, address, avatar_url, points, streak, level, status, created_at, updated_at) FROM stdin;
-c162ff6d-f51f-42f6-9a2e-494ac2d8a5f1	Ana Lucía García	ana.garcia@gmail.com	$2b$10$placeholder	3124567890	Calle 5 #12-34, Neiva	\N	320	14	3	active	2026-03-26 14:29:51.352396-05	2026-03-26 14:29:51.352396-05
+c162ff6d-f51f-42f6-9a2e-494ac2d8a5f1	Ana Lucía García	ana.garcia@gmail.com	$2b$10$placeholder	3124567890	Calle 5 #12-34, Neiva	\N	320	14	3	active	2026-03-26 14:29:51.352396-05	2026-04-08 23:03:26.907399-05
+36a8ebb1-7390-4c34-8490-bb1789a92977	Test User	test@test.com	$2b$10$N9XYl4n9VFkvzyFzuImSB.YTMzDQsHgiRlN4Rno9tfmOistxu7jcG	\N	\N	\N	0	0	1	active	2026-04-09 00:24:10.727112-05	2026-04-09 00:24:10.727112-05
+81dac2e2-d4cd-4d94-a2ca-13c29460796e	Juan Perez	juan@test.com	$2b$10$LFG/NPhQxij2w3lUDEIj..U4hGYf0iyAcTM7dEPpSYrqnG36kDDWK	\N	\N	\N	0	0	1	active	2026-04-09 00:25:25.045226-05	2026-04-09 00:25:25.045226-05
+85562ae7-2fd8-4852-99b1-652470935beb	Nuevo Usuario	nuevo@test.com	$2b$10$6Yso0ow6a4PrylVS3hDhaejs.tHSS8qOC.hiwVd5dwvj6JoU9hFOm	\N	\N	\N	0	0	1	active	2026-04-09 00:28:45.677854-05	2026-04-09 00:28:45.677854-05
+3ad30db5-bff3-400f-b840-a6b48a851475	TestUser	test123@test.com	$2b$10$Y3/Gb82PHlLPqR9Dmkiz7O63tuJ5gY14Uhw5Yc.AHNTRf9hfewkOm	\N	\N	\N	0	0	1	active	2026-04-09 00:53:20.720479-05	2026-04-09 00:53:20.720479-05
 36ce76ff-817b-4576-b6c6-f60669e11dfa	Luis Eduardo Peña	lpe¤a@hotmail.com	$2b$10$placeholder	3209876543	Carrera 8 #22-10, Neiva	\N	180	7	2	active	2026-03-26 14:29:51.352396-05	2026-03-26 14:29:51.352396-05
 bb4c8ace-23b5-4e6d-8dec-d20f37c1ec7b	Jorge Andrés Molina	jmolina@gmail.com	$2b$10$placeholder	3134567890	Carrera 6 #10-23, Neiva	\N	230	9	2	active	2026-03-26 14:29:51.352396-05	2026-03-26 14:29:51.352396-05
+4dd19080-8af9-4879-bef0-a4a1cbfbe851	Test2	test2@test.com	$2b$10$gUhcUwqeGSCKkVy6D5s77uTj09oJITibMUGd38wbpE.C9TtLNnWpu	\N	\N	\N	0	0	1	active	2026-04-09 01:02:32.904861-05	2026-04-09 01:02:32.904861-05
 e6b9d7bc-efd6-472c-aef9-688bda7ded08	Diana Carolina Ríos	drios@gmail.com	$2b$10$placeholder	3168901234	Calle 12 #9-34, Neiva	\N	420	18	3	active	2026-03-26 14:29:51.352396-05	2026-03-26 14:29:51.352396-05
+d6d322f6-af70-4fe0-ae6d-bce9764b2ff8	Juan Torres Dear	uwuyeti05@gmail.com	$2b$10$XL62RvbA2zz0jZ8LE7nSFeMlJipu9/geDnqwemWKxNUHRYk6oCt0e	3142021695	K 1H 25A 16	\N	0	0	1	active	2026-04-09 01:18:46.107024-05	2026-04-09 01:18:46.107024-05
 256b591c-3e4b-4eed-a06e-b43b48cfc6f8	Carlos Ruiz	carlos.r@yahoo.com	$2b$10$placeholder	3001234567	Carrera 12 #8-90, Neiva	\N	0	0	1	active	2026-03-26 14:29:51.352396-05	2026-03-26 15:23:42.55632-05
 8ae45ff7-8a03-46d0-90aa-c4ae9025047a	Andrés Felipe Cano	acano@gmail.com	$2b$10$placeholder	3045678901	Carrera 3 #18-56, Neiva	\N	0	0	1	active	2026-03-26 14:29:51.352396-05	2026-03-26 15:24:47.271307-05
 65502d0e-7c7a-4481-a6ff-73e9dff588cd	Sandra Milena L¢pez	slopez@gmail.com	$2b$10$placeholder	3187654321	Calle 9 #15-67, Neiva	\N	510	21	4	active	2026-03-26 14:29:51.352396-05	2026-03-26 15:25:06.670613-05
@@ -219,11 +226,11 @@ ALTER TABLE ONLY public.reports
 GRANT ALL ON SCHEMA public TO waste_admin;
 
 
--- Completed on 2026-03-26 15:41:29
+-- Completed on 2026-04-09 01:55:20
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ODZWrAaaaJIFH0AFpd9hgsoiSPn8VR3wdgdvU8CqhilTujoY5VvGTFwxoLVKRfh
+\unrestrict nci5wutlQrWeQh1M595wJs7OSza539Y0qOy5xOHTLFpfcM76X3RIdXpbwfndMci
 
