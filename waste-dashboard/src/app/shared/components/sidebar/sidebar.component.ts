@@ -40,8 +40,11 @@ export class SidebarComponent {
   ];
 
   gestionNav: NavItem[] = [
-    { label: 'Usuarios',      route: '/dashboard/usuarios', available: true },
-    { label: 'Planificador',  route: '/dashboard/rutas',    available: true },
+    { label: 'Usuarios',      route: '/dashboard/usuarios',   available: true },
+    { label: 'Personal de Campo', route: '/dashboard/conductores', available: true },
+    { label: 'Vehículos',     route: '/dashboard/vehiculos',   available: true },
+    { label: 'Reportes',      route: '/dashboard/reportes',   available: true },
+    { label: 'Planificador',  route: '/dashboard/rutas',      available: true },
   ];
 
   adminNav: NavItem[] = [

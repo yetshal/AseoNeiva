@@ -184,3 +184,155 @@ export const updateVehicleLocation = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error del servidor' });
   }
 };
+
+/** GET /api/fleet/:id/nearby-reports – Reportes cercanos al vehículo */
+export const getNearbyReports = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { radius = 500 } = req.query;
+
+    const vehicleRes = await pool.query(
+      'SELECT latitude, longitude FROM vehicles WHERE id = $1',
+      [id]
+    );
+
+    if (!vehicleRes.rows[0] || !vehicleRes.rows[0].latitude) {
+      return res.status(400).json({ message: 'El vehículo no tiene ubicación registrada' });
+    }
+
+    const { latitude, longitude } = vehicleRes.rows[0];
+
+    const reportsRes = await pool.query(
+      `SELECT r.id, r.type, r.description, r.photo_url, r.latitude, r.longitude, 
+              r.status, r.created_at, u.name as user_name,
+              rv.is_valid as validated, rv.validation_notes
+       FROM reports r
+       LEFT JOIN users u ON r.user_id = u.id
+       LEFT JOIN report_validations rv ON r.id = rv.report_id
+       WHERE r.status IN ('pending', 'reviewing')
+         AND r.latitude IS NOT NULL
+         AND r.longitude IS NOT NULL
+         AND (
+           (6371000 * acos(
+             cos(radians($1)) * cos(radians(r.latitude)) * 
+             cos(radians(r.longitude) - radians($2)) + 
+             sin(radians($1)) * sin(radians(r.latitude))
+           )) <= $3
+         )
+       ORDER BY r.created_at DESC
+       LIMIT 20`,
+      [latitude, longitude, radius]
+    );
+
+    const reports = reportsRes.rows.map((r: any) => ({
+      id: r.id,
+      type: r.type,
+      description: r.description,
+      photoUrl: r.photo_url,
+      latitude: Number(r.latitude),
+      longitude: Number(r.longitude),
+      status: r.status,
+      createdAt: r.created_at,
+      userName: r.user_name,
+      validated: r.validated,
+      validationNotes: r.validation_notes,
+    }));
+
+    res.json({ data: reports });
+  } catch (err) {
+    console.error('getNearbyReports error:', err);
+    res.status(500).json({ message: 'Error del servidor' });
+  }
+};
+
+/** POST /api/fleet/:id/validate-report – Validar reporte y otorgar puntos */
+export const validateReport = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { reportId, isValid, notes } = req.body;
+
+  if (!reportId || isValid === undefined) {
+    return res.status(400).json({ message: 'reportId e isValid son requeridos' });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const vehicleRes = await client.query(
+      'SELECT id FROM vehicles WHERE id = $1',
+      [id]
+    );
+
+    if (!vehicleRes.rows[0]) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ message: 'Vehículo no encontrado' });
+    }
+
+    const reportRes = await client.query(
+      'SELECT * FROM reports WHERE id = $1',
+      [reportId]
+    );
+
+    if (!reportRes.rows[0]) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ message: 'Reporte no encontrado' });
+    }
+
+    const existingValidation = await client.query(
+      'SELECT * FROM report_validations WHERE report_id = $1',
+      [reportId]
+    );
+
+    if (existingValidation.rows[0]) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ message: 'Este reporte ya fue validado' });
+    }
+
+    await client.query(
+      `INSERT INTO report_validations (report_id, validated_by, is_valid, validation_notes)
+       VALUES ($1, $2, $3, $4)`,
+      [reportId, id, isValid, notes || null]
+    );
+
+    const newStatus = isValid ? 'resolved' : 'reviewing';
+    await client.query(
+      'UPDATE reports SET status = $1 WHERE id = $2',
+      [newStatus, reportId]
+    );
+
+    const userId = reportRes.rows[0].user_id;
+    let pointsAwarded = 0;
+
+    if (userId) {
+      await client.query(
+        'UPDATE users SET total_reports = COALESCE(total_reports, 0) + 1 WHERE id = $1',
+        [userId]
+      );
+
+      if (isValid) {
+        const reportReward = 5;
+        pointsAwarded = reportReward;
+
+        await client.query(
+          'UPDATE users SET valid_reports = COALESCE(valid_reports, 0) + 1, points = points + $1 WHERE id = $2',
+          [reportReward, userId]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+
+    res.json({
+      message: isValid ? 'Reporte validado como válido (+5 puntos)' : 'Reporte marcado como inválido',
+      pointsAwarded,
+      validated: true,
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('validateReport error:', err);
+    res.status(500).json({ message: 'Error del servidor' });
+  } finally {
+    client.release();
+  }
+};

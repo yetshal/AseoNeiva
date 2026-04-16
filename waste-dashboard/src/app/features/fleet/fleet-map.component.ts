@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, inject, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { FleetService } from '../../core/services/fleet.service';
+import { FleetService, NearbyReport } from '../../core/services/fleet.service';
 import { Vehicle, VehicleDetail } from '../../shared/models/fleet.model';
 import * as L from 'leaflet';
 
@@ -19,6 +19,12 @@ export class FleetMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   vehicles:        Vehicle[]       = [];
   selectedVehicle: VehicleDetail | null = null;
+  nearbyReports:   NearbyReport[] = [];
+  selectedReport:  NearbyReport | null = null;
+  reportsLoading   = false;
+  validating       = false;
+  successMessage   = '';
+  errorMessage     = '';
   searchTerm    = '';
   statusFilter  = '';
   loading       = true;
@@ -27,6 +33,7 @@ export class FleetMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private map:     L.Map | null = null;
   private markers: Map<string, L.CircleMarker> = new Map();
+  private reportMarkers: Map<string, L.Marker> = new Map();
   private refreshInterval: any;
 
   private readonly CENTER: L.LatLngExpression = [2.9273, -75.2819];
@@ -126,6 +133,7 @@ export class FleetMapComponent implements OnInit, AfterViewInit, OnDestroy {
   selectVehicle(id: string): void {
     this.svc.getVehicleById(id).subscribe(detail => {
       this.selectedVehicle = detail;
+      this.loadNearbyReports(id);
       if (this.map && detail.vehicle.latitude && detail.vehicle.longitude) {
         this.map.panTo([Number(detail.vehicle.latitude), Number(detail.vehicle.longitude)]);
         this.map.setZoom(15);
@@ -133,8 +141,101 @@ export class FleetMapComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  loadNearbyReports(vehicleId: string): void {
+    this.reportsLoading = true;
+    this.svc.getNearbyReports(vehicleId).subscribe({
+      next: res => {
+        this.nearbyReports = res.data;
+        this.reportsLoading = false;
+        this.updateReportMarkers();
+      },
+      error: () => {
+        this.nearbyReports = [];
+        this.reportsLoading = false;
+      }
+    });
+  }
+
+  private updateReportMarkers(): void {
+    if (!this.map) return;
+
+    this.reportMarkers.forEach(m => this.map!.removeLayer(m));
+    this.reportMarkers.clear();
+
+    this.nearbyReports.forEach(r => {
+      if (!r.latitude || !r.longitude) return;
+
+      const icon = L.divIcon({
+        className: 'report-marker',
+        html: '<div style="background:#EF4444;width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>',
+        iconSize: [12, 12],
+        iconAnchor: [6, 6]
+      });
+
+      const marker = L.marker([r.latitude, r.longitude], { icon });
+      marker.bindPopup(`
+        <strong>${r.type}</strong><br>
+        ${r.description || 'Sin descripción'}<br>
+        <small>${new Date(r.createdAt).toLocaleDateString()}</small>
+      `);
+      marker.on('click', () => this.openReport(r));
+      marker.addTo(this.map!);
+      this.reportMarkers.set(r.id, marker);
+    });
+  }
+
+  openReport(report: NearbyReport): void {
+    this.selectedReport = report;
+  }
+
+  closeReport(): void {
+    this.selectedReport = null;
+  }
+
+  validateReport(isValid: boolean): void {
+    if (!this.selectedVehicle || !this.selectedReport) return;
+    
+    this.validating = true;
+    this.successMessage = '';
+    this.errorMessage = '';
+
+    this.svc.validateReport(
+      this.selectedVehicle.vehicle.id,
+      this.selectedReport.id,
+      isValid
+    ).subscribe({
+      next: res => {
+        this.validating = false;
+        this.successMessage = res.message;
+        setTimeout(() => this.successMessage = '', 3000);
+        
+        this.nearbyReports = this.nearbyReports.filter(r => r.id !== this.selectedReport!.id);
+        const marker = this.reportMarkers.get(this.selectedReport!.id);
+        if (marker && this.map) {
+          this.map.removeLayer(marker);
+          this.reportMarkers.delete(this.selectedReport!.id);
+        }
+        
+        this.selectedReport = null;
+        
+        if (this.selectedVehicle) {
+          this.loadNearbyReports(this.selectedVehicle.vehicle.id);
+        }
+      },
+      error: () => {
+        this.validating = false;
+        this.errorMessage = 'Error al validar el reporte.';
+        setTimeout(() => this.errorMessage = '', 3000);
+      }
+    });
+  }
+
   closeDetail(): void {
     this.selectedVehicle = null;
+    this.nearbyReports = [];
+    this.selectedReport = null;
+    this.reportMarkers.forEach(m => this.map?.removeLayer(m));
+    this.reportMarkers.clear();
   }
 
   onSearch(): void {
@@ -143,6 +244,10 @@ export class FleetMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onStatusFilter(): void {
     this.loadVehicles();
+  }
+
+  getReportStatusLabel(status: string): string {
+    return { pending: 'Pendiente', reviewing: 'En revisión', resolved: 'Resuelto' }[status] ?? status;
   }
 
   statusColor(status: string): string {

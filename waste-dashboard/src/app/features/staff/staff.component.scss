@@ -7,6 +7,19 @@
 .page-title { font-size: 20px; font-weight: 500; letter-spacing: -0.4px; margin: 0 0 4px; }
 .page-sub   { font-size: 13px; color: #888; margin: 0; }
 
+.tabs {
+  display: flex; gap: 8px; margin-bottom: 16px;
+}
+
+.tab {
+  padding: 10px 20px; border-radius: 8px;
+  background: #f0f0ed; border: none;
+  font-size: 14px; cursor: pointer; font-weight: 500;
+  color: #666;
+  &:hover { background: #e5e5e3; }
+  &.active { background: #1D9E75; color: white; }
+}
+
 .btn-primary {
   height: 34px; padding: 0 16px; border-radius: 8px;
   background: #1D9E75; color: white; border: none;
@@ -91,6 +104,16 @@ tr:last-child td { border-bottom: none; }
   padding: 3px 10px; border-radius: 20px; font-weight: 500;
   &.active   { background: #E1F5EE; color: #0F6E56; }
   &.inactive { background: #f0f0ee; color: #888; }
+}
+
+.role-pill {
+  display: inline-block; font-size: 11px;
+  padding: 3px 10px; border-radius: 20px; font-weight: 500;
+  &.superadmin { background: #854F0B; color: white; }
+  &.admin { background: #185FA5; color: white; }
+  &.operator { background: #f0f0ed; color: #666; }
+  &.driver { background: #1D9E75; color: white; }
+  &.collector { background: #6B5B95; color: white; }
 }
 
 .action-row { display: flex; gap: 6px; align-items: center; }

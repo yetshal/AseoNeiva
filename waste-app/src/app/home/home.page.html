@@ -87,7 +87,7 @@
 
   <!-- Points & Streak Section -->
   <div class="gamification-section">
-    <div class="gamification-card points">
+    <div class="gamification-card points" (click)="registerTrashCollection()">
       <div class="g-icon">
         <svg viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
@@ -123,5 +123,15 @@
         <span class="g-label">Récord</span>
       </div>
     </div>
+  </div>
+  
+  <div class="action-section">
+    <button class="collect-btn" (click)="registerTrashCollection()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+        <polyline points="22 4 12 14.01 9 11.01"/>
+      </svg>
+      <span>¡Confirmar que saqué la basura!</span>
+    </button>
   </div>
 </ion-content>

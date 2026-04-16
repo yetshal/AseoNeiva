@@ -26,6 +26,8 @@ export class StaffComponent implements OnInit {
   loading  = true;
   error    = '';
 
+  activeTab: 'admin' = 'admin';
+
   searchTerm    = '';
   roleFilter    = '';
   activeFilter  = '';
@@ -68,6 +70,12 @@ export class StaffComponent implements OnInit {
         this.loading = false;
       }
     });
+  }
+
+  setActiveTab(tab: 'admin') {
+    this.activeTab = tab;
+    this.page = 1;
+    this.loadStaff();
   }
 
   openCreate(): void {
@@ -122,7 +130,7 @@ export class StaffComponent implements OnInit {
     }
   }
 
-  confirmDelete(id: string): void {
+confirmDelete(id: string): void {
     this.confirmDeleteId = id;
   }
 

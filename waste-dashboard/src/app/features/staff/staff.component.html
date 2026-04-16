@@ -3,38 +3,46 @@
   <div class="page-header">
     <div>
       <h1 class="page-title">Personal</h1>
-      <p class="page-sub">Gestión del personal con acceso al dashboard corporativo</p>
+      <p class="page-sub">Administradores del sistema</p>
     </div>
-    <button class="btn-primary" (click)="openCreate()">+ Nuevo usuario</button>
   </div>
 
-  <!-- ── Tabla ───────────────────────────────────────────── -->
+  <!-- Admin Tab -->
+  @if (activeTab === 'admin') {
+    <button class="btn-primary" (click)="openCreate()">+ Nuevo administrador</button>
+  }
+
+  <!-- Content -->
   <div class="table-card">
-    <div class="table-toolbar">
-      <div class="toolbar-left">
-        <span class="table-title">Usuarios del sistema</span>
-        <span class="table-count">{{ total | number }} registros</span>
+    @if (activeTab === 'admin') {
+      <div class="table-toolbar">
+        <div class="toolbar-left">
+          <span class="table-title">{{ activeTab === 'admin' ? 'Administradores del sistema' : 'Personal operativo' }}</span>
+          <span class="table-count">{{ total | number }} registros</span>
+        </div>
+        @if (activeTab === 'admin') {
+          <div class="toolbar-right">
+            <input
+              type="text"
+              class="search-input"
+              placeholder="Buscar por nombre o correo..."
+              [(ngModel)]="searchTerm"
+              (ngModelChange)="onSearch()" />
+            <select class="filter-select" [(ngModel)]="roleFilter" (ngModelChange)="onFilter()">
+              <option value="">Todos los roles</option>
+              <option value="superadmin">Super Admin</option>
+              <option value="admin">Administrador</option>
+              <option value="operator">Operador</option>
+            </select>
+            <select class="filter-select" [(ngModel)]="activeFilter" (ngModelChange)="onFilter()">
+              <option value="">Todos los estados</option>
+              <option value="true">Activo</option>
+              <option value="false">Inactivo</option>
+            </select>
+          </div>
+        }
       </div>
-      <div class="toolbar-right">
-        <input
-          type="text"
-          class="search-input"
-          placeholder="Buscar por nombre o correo..."
-          [(ngModel)]="searchTerm"
-          (ngModelChange)="onSearch()" />
-        <select class="filter-select" [(ngModel)]="roleFilter" (ngModelChange)="onFilter()">
-          <option value="">Todos los roles</option>
-          <option value="superadmin">Super Admin</option>
-          <option value="admin">Administrador</option>
-          <option value="operator">Operador</option>
-        </select>
-        <select class="filter-select" [(ngModel)]="activeFilter" (ngModelChange)="onFilter()">
-          <option value="">Todos los estados</option>
-          <option value="true">Activo</option>
-          <option value="false">Inactivo</option>
-        </select>
-      </div>
-    </div>
+    }
 
     @if (error) {
       <div class="error-row">{{ error }}</div>

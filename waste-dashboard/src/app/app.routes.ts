@@ -62,6 +62,27 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/staff/staff.component').then(m => m.StaffComponent)
       },
+
+      // Reportes
+      {
+        path: 'reportes',
+        loadComponent: () =>
+          import('./features/reports/reports-list/reports-list.component').then(m => m.ReportsListComponent)
+      },
+
+      // Personal de Campo (Conductores, Recolectores, Barredores)
+      {
+        path: 'conductores',
+        loadComponent: () =>
+          import('./features/crew/crew.component').then(m => m.CrewComponent)
+      },
+
+      // Vehículos
+      {
+        path: 'vehiculos',
+        loadComponent: () =>
+          import('./features/vehicles/vehicles.component').then(m => m.VehiclesComponent)
+      },
     ]
   },
   { path: '**', redirectTo: 'login' }

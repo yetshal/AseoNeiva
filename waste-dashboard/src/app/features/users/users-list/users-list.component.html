@@ -61,6 +61,7 @@
           <tr>
             <th>Nombre</th>
             <th>Correo</th>
+            <th>Tipo</th>
             <th>Estado</th>
             <th>Nivel</th>
             <th>Puntos</th>
@@ -77,6 +78,11 @@
                 {{ user.name }}
               </td>
               <td class="muted">{{ user.email }}</td>
+              <td>
+                <span class="role-pill" [class]="user.user_type">
+                  {{ user.user_type === 'driver' ? 'Conductor' : user.user_type === 'collector' ? 'Recolector' : 'Ciudadano' }}
+                </span>
+              </td>
               <td>
                 <span class="pill" [class]="user.status">
                   {{ user.status === 'active' ? 'Activo' : user.status === 'inactive' ? 'Inactivo' : 'Pendiente' }}

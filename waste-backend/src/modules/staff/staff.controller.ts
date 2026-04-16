@@ -167,21 +167,33 @@ export const changeStaffPassword = async (req: AuthRequest, res: Response) => {
 export const deleteStaff = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+    const adminId = req.admin?.id;
 
-    if (req.admin?.id === id) {
-      return res.status(400).json({ message: 'No puede eliminar su propia cuenta' });
+    if (adminId === id) {
+      return res.status(400).json({ message: 'No puede eliminar su propia cuenta. Use otro método.' });
     }
 
-    const result = await pool.query(
+    const client = await pool.connect();
+    await client.query('BEGIN');
+
+    await client.query('DELETE FROM report_validations WHERE validated_by = $1', [id]);
+
+    const result = await client.query(
       'DELETE FROM dashboard_admins WHERE id = $1 RETURNING id',
       [id]
     );
 
-    if (!result.rows[0]) return res.status(404).json({ message: 'Personal no encontrado' });
+    await client.query('COMMIT');
+    client.release();
 
-    res.json({ message: 'Personal eliminado' });
-  } catch (err) {
+    if (!result.rows[0]) return res.status(404).json({ message: 'Usuario no encontrado' });
+
+    res.json({ message: 'Usuario eliminado correctamente' });
+  } catch (err: any) {
     console.error('deleteStaff error:', err);
-    res.status(500).json({ message: 'Error del servidor' });
+    if (err.code === '23503') {
+      return res.status(400).json({ message: 'No se puede eliminar. Este usuario tiene validaciones de reportes asociadas. Elimine primero las validaciones.' });
+    }
+    res.status(500).json({ message: 'Error al eliminar usuario' });
   }
 };

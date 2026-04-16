@@ -3,6 +3,20 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { FleetResponse, VehicleDetail, Vehicle } from '../../shared/models/fleet.model';
 
+export interface NearbyReport {
+  id: string;
+  type: string;
+  description: string;
+  photoUrl: string | null;
+  latitude: number;
+  longitude: number;
+  status: string;
+  createdAt: string;
+  userName: string | null;
+  validated: boolean | null;
+  validationNotes: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class FleetService {
   private http = inject(HttpClient);
@@ -34,5 +48,17 @@ export class FleetService {
 
   updateLocation(id: string, latitude: number, longitude: number) {
     return this.http.patch<{ vehicle: Vehicle }>(`${this.base}/${id}/location`, { latitude, longitude });
+  }
+
+  getNearbyReports(vehicleId: string, radius: number = 500) {
+    const params = new HttpParams().set('radius', radius.toString());
+    return this.http.get<{ data: NearbyReport[] }>(`${this.base}/${vehicleId}/nearby-reports`, { params });
+  }
+
+  validateReport(vehicleId: string, reportId: string, isValid: boolean, notes?: string) {
+    return this.http.post<{ message: string; pointsAwarded: number; validated: boolean }>(
+      `${this.base}/${vehicleId}/validate-report`,
+      { reportId, isValid, notes }
+    );
   }
 }

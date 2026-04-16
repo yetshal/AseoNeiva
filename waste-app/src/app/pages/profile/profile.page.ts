@@ -1,8 +1,9 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { GamificationService, GamificationProfile, WeeklyStreak, Achievement, Collection } from '../../services/gamification.service';
 import { User } from '../../models/user.model';
 
 @Component({
@@ -77,9 +78,9 @@ import { User } from '../../models/user.model';
       <div class="streak-section">
         <h2 class="section-title">Racha semanal</h2>
         <div class="streak-days">
-          @for (day of weekDays; track day.name) {
+          @for (day of weeklyStreak; track day.day) {
             <div class="day-item" [class.active]="day.completed">
-              <span class="day-name">{{ day.name }}</span>
+              <span class="day-name">{{ day.day }}</span>
               <div class="day-indicator">
                 @if (day.completed) {
                   <svg viewBox="0 0 24 24" fill="currentColor">
@@ -445,32 +446,68 @@ import { User } from '../../models/user.model';
     }
   `]
 })
-export class ProfilePage {
+export class ProfilePage implements OnInit {
   private auth = inject(AuthService);
+  private gamification = inject(GamificationService);
   private router = inject(Router);
 
   user: User | null = this.auth.getCurrentUser();
-  achievements = 5;
-  pointsToNextLevel = 80;
-  progressToNextLevel = 75;
+  
+  gamificationData: GamificationProfile | null = null;
+  achievements = 0;
+  pointsToNextLevel = 0;
+  progressToNextLevel = 0;
+  weeklyStreak: WeeklyStreak[] = [];
+  achievementsList: Achievement[] = [];
 
-  weekDays = [
-    { name: 'Lun', completed: true },
-    { name: 'Mar', completed: true },
-    { name: 'Mié', completed: true },
-    { name: 'Jue', completed: true },
-    { name: 'Vie', completed: false },
-    { name: 'Sáb', completed: false },
-    { name: 'Dom', completed: false }
-  ];
+  ngOnInit() {
+    this.loadGamificationData();
+  }
 
-  achievementsList = [
-    { id: 1, name: 'Primer paso', description: 'Saca la basura por primera vez', icon: '🌱', unlocked: true },
-    { id: 2, name: 'Semana completa', description: '7 días consecutivos', icon: '📅', unlocked: true },
-    { id: 3, name: 'Mes de racha', description: '30 días consecutivos', icon: '🔥', unlocked: true },
-    { id: 4, name: 'Reportero', description: 'Realiza 5 reportes', icon: '📱', unlocked: true },
-    { id: 5, name: 'Vecino ejemplares', description: 'Invita 3 amigos', icon: '👥', unlocked: false }
-  ];
+  loadGamificationData() {
+    this.gamification.getGamificationProfile().subscribe({
+      next: (data) => {
+        this.gamificationData = data;
+        this.achievements = data.achievements.filter(a => a.unlocked).length;
+        this.pointsToNextLevel = data.pointsToNextLevel;
+        this.progressToNextLevel = data.progressToNextLevel;
+        this.weeklyStreak = data.weeklyStreak;
+        this.achievementsList = data.achievements;
+        
+        if (this.user) {
+          this.user.points = data.user.points;
+          this.user.streak = data.user.streak;
+          this.user.level = data.user.level;
+        }
+      },
+      error: (err) => {
+        console.error('Error loading gamification:', err);
+        this.initDefaultData();
+      }
+    });
+  }
+
+  initDefaultData() {
+    this.pointsToNextLevel = 80;
+    this.progressToNextLevel = 75;
+    this.weeklyStreak = [
+      { day: 'Lun', completed: true },
+      { day: 'Mar', completed: true },
+      { day: 'Mié', completed: true },
+      { day: 'Jue', completed: true },
+      { day: 'Vie', completed: false },
+      { day: 'Sáb', completed: false },
+      { day: 'Dom', completed: false }
+    ];
+    this.achievementsList = [
+      { id: 1, name: 'Primer paso', description: 'Saca la basura por primera vez', icon: '🌱', points_reward: 10, unlocked: true },
+      { id: 2, name: 'Semana completa', description: '7 días consecutivos', icon: '📅', points_reward: 50, unlocked: true },
+      { id: 3, name: 'Mes de racha', description: '30 días consecutivos', icon: '🔥', points_reward: 200, unlocked: true },
+      { id: 4, name: 'Reportero', description: 'Realiza 5 reportes', icon: '📱', points_reward: 30, unlocked: true },
+      { id: 5, name: 'Vecino ejemplares', description: 'Invita 3 amigos', icon: '👥', points_reward: 100, unlocked: false }
+    ];
+    this.achievements = this.achievementsList.filter(a => a.unlocked).length;
+  }
 
   getUserInitials(): string {
     if (!this.user?.name) return 'U';

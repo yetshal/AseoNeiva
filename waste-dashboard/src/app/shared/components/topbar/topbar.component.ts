@@ -22,6 +22,9 @@ export class TopbarComponent {
     'analisis':    'Análisis',
     'rutas':       'Planificador',
     'personal':    'Personal',
+    'reportes':    'Reportes',
+    'conductores': 'Conductores',
+    'vehiculos':   'Vehículos',
   };
 
   constructor() {

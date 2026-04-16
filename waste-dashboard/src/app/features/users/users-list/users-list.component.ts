@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { debounceTime, distinctUntilChanged, Subject, switchMap } from 'rxjs';
 import { UsersService } from '../../../core/services/users.service';
-import { User, UserStats } from '../../../shared/models/user.model';
+import { User, UserStats, UserType } from '../../../shared/models/user.model';
 
 @Component({
   selector: 'app-users-list',
@@ -90,5 +90,29 @@ export class UsersListComponent implements OnInit {
 
   get pages(): number[] {
     return Array.from({ length: this.totalPages }, (_, i) => i + 1);
+  }
+
+  changeUserType(user: User, newType: UserType) {
+    if (user.user_type === newType) return;
+    
+    if (confirm(`¿Cambiar tipo de ${user.name} a ${this.getTypeLabel(newType)}?`)) {
+      this.svc.updateUserType(user.id, newType).subscribe({
+        next: () => {
+          user.user_type = newType;
+          alert('Tipo actualizado');
+        },
+        error: () => alert('Error al actualizar')
+      });
+    }
+  }
+
+  private getTypeLabel(type: string): string {
+    const labels: { [key: string]: string } = {
+      citizen: 'Ciudadano',
+      driver: 'Conductor',
+      collector: 'Recolector',
+      admin: 'Admin'
+    };
+    return labels[type] || type;
   }
 }

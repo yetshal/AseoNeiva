@@ -342,3 +342,33 @@
   font-size: 11px;
   color: #999;
 }
+
+.action-section {
+  padding: 0 16px 40px;
+}
+
+.collect-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  background: linear-gradient(135deg, #1D9E75 0%, #0F6E56 100%);
+  border: none;
+  border-radius: 14px;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(29, 158, 117, 0.3);
+
+  svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}

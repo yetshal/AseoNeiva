@@ -2,16 +2,17 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import './config/db';
+import { pool } from './config/db';
 
 import { login } from './modules/auth/auth.controller';
 import { verifyToken } from './middleware/auth';
 
 // Módulos existentes
-import { getUsers, getUserById, getUserStats, updateUserStatus } from './modules/users/users.controller';
+import { getUsers, getUserById, getUserStats, updateUserStatus, createUser, updateUser } from './modules/users/users.controller';
 
 // Nuevos módulos
 import { getSummary } from './modules/summary/summary.controller';
-import { getVehicles, getVehicleById, createVehicle, updateVehicle, deleteVehicle, updateVehicleLocation } from './modules/fleet/fleet.controller';
+import { getVehicles, getVehicleById, createVehicle, updateVehicle, deleteVehicle, updateVehicleLocation, getNearbyReports, validateReport as validateVehicleReport } from './modules/fleet/fleet.controller';
 import { getStaff, getStaffById, createStaff, updateStaff, changeStaffPassword, deleteStaff } from './modules/staff/staff.controller';
 import { getReportsAnalysis, getFleetAnalysis, getUsersAnalysis } from './modules/analysis/analysis.controller';
 import { getRoutes, getRouteById, createRoute, updateRoute, deleteRoute, getAssignments, createAssignment, updateAssignment, deleteAssignment } from './modules/routes/routes.controller';
@@ -19,6 +20,12 @@ import { getRoutes, getRouteById, createRoute, updateRoute, deleteRoute, getAssi
 // Módulo ciudadano (app móvil)
 import { citizenLogin, citizenRegister, citizenRecovery, getCitizenProfile, updateCitizenProfile } from './modules/citizen-auth/citizen-auth.controller';
 import { verifyCitizenToken } from './middleware/citizen-auth';
+
+// Gamificación
+import { getLevels, getUserGamification, registerTrashCollection, getLeaderboard, validateReport, updateUserType, getUserCollections } from './modules/gamification/gamification.controller';
+
+// Reportes
+import { getAllReports, getReportById, updateReportStatus, validateReportAndAwardPoints } from './modules/reports/reports.controller';
 
 dotenv.config();
 const app = express();
@@ -54,7 +61,9 @@ app.patch('/api/citizen/profile', verifyCitizenToken, updateCitizenProfile);
 app.get('/api/users/stats',        verifyToken, getUserStats);
 app.patch('/api/users/:id/status', verifyToken, updateUserStatus);
 app.get('/api/users',              verifyToken, getUsers);
-app.get('/api/users/:id',          verifyToken, getUserById);
+app.get('/api/users/:id',         verifyToken, getUserById);
+app.post('/api/users',             verifyToken, createUser);
+app.patch('/api/users/:id',       verifyToken, updateUser);
 
 // ── Resumen / Panel de control ───────────────────────────────
 app.get('/api/summary', verifyToken, getSummary);
@@ -66,6 +75,8 @@ app.get('/api/fleet/:id',                verifyToken, getVehicleById);
 app.patch('/api/fleet/:id',              verifyToken, updateVehicle);
 app.delete('/api/fleet/:id',             verifyToken, deleteVehicle);
 app.patch('/api/fleet/:id/location',     verifyToken, updateVehicleLocation);
+app.get('/api/fleet/:id/nearby-reports', verifyToken, getNearbyReports);
+app.post('/api/fleet/:id/validate-report', verifyToken, validateVehicleReport);
 
 // ── Personal (admins del dashboard) ─────────────────────────
 app.get('/api/staff',                    verifyToken, getStaff);
@@ -91,6 +102,35 @@ app.get('/api/routes/:id',                   verifyToken, getRouteById);
 app.patch('/api/routes/:id',                 verifyToken, updateRoute);
 app.delete('/api/routes/:id',                verifyToken, deleteRoute);
 
-app.listen(process.env.PORT, () =>
+// ── Gamificación ─────────────────────────────────────────────
+app.get('/api/gamification/levels', getLevels);
+app.get('/api/gamification/profile', verifyCitizenToken, getUserGamification);
+app.post('/api/gamification/collection', verifyCitizenToken, registerTrashCollection);
+app.get('/api/gamification/leaderboard', getLeaderboard);
+app.get('/api/gamification/collections', verifyCitizenToken, getUserCollections);
+
+// Reportes ────────────────────────────────────────────────────────
+app.get('/api/reports', verifyToken, getAllReports);
+app.get('/api/reports/:id', verifyToken, getReportById);
+app.patch('/api/reports/:id/status', verifyToken, updateReportStatus);
+app.patch('/api/reports/:reportId/validate', verifyToken, validateReportAndAwardPoints);
+
+// Report validation (dashboard)
+app.patch('/api/gamification/reports/:reportId/validate', verifyToken, validateReport);
+
+// User type management
+app.patch('/api/users/:userId/type', verifyToken, updateUserType);
+
+app.listen(process.env.PORT, async () => {
+  try {
+    await pool.query(`
+      ALTER TABLE report_validations DROP CONSTRAINT IF EXISTS report_validations_validated_by_fkey;
+      ALTER TABLE report_validations ALTER COLUMN validated_by DROP NOT NULL;
+    `);
+    console.log('✅ FK de report_validations eliminada');
+  } catch (e: any) {
+    console.log('⚠️ Error al modificar FK (puede que ya esté eliminada):', e.message);
+  }
+  
   console.log(`🚀 Servidor en puerto ${process.env.PORT}`)
-);
+});
