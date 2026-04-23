@@ -1,462 +1,302 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject, ElementRef, ViewChild, AfterViewInit, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule } from '@ionic/angular';
-import { Router } from '@angular/router';
+import { IonicModule, ToastController, AlertController, LoadingController, ModalController } from '@ionic/angular';
 import { Geolocation } from '@capacitor/geolocation';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import * as L from 'leaflet';
+import { ReportService, Report } from '../../services/report.service';
+
+@Component({
+  selector: 'app-report-detail-modal',
+  standalone: true,
+  imports: [CommonModule, IonicModule],
+  template: `
+    <ion-header class="ion-no-border">
+      <ion-toolbar>
+        <ion-title>Detalle del Reporte</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="dismiss()">Cerrar</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      <div class="detail-container">
+        <img [src]="report.photo_url" class="detail-img">
+        <div class="detail-header">
+          <h2>{{ report.type }}</h2>
+          <span class="status-badge" [class]="report.status">{{ getStatusLabel(report.status || '') }}</span>
+        </div>
+        <p class="detail-desc">{{ report.description }}</p>
+        <div class="detail-meta">
+          <ion-item lines="none">
+            <ion-icon name="calendar-outline" slot="start"></ion-icon>
+            <ion-label>
+              <p>Fecha de reporte</p>
+              <h3>{{ report.created_at | date:'medium' }}</h3>
+            </ion-label>
+          </ion-item>
+          <ion-item lines="none">
+            <ion-icon name="location-outline" slot="start"></ion-icon>
+            <ion-label>
+              <p>Coordenadas</p>
+              <h3>{{ report.latitude }}, {{ report.longitude }}</h3>
+            </ion-label>
+          </ion-item>
+        </div>
+      </div>
+    </ion-content>
+  `,
+  styles: [`
+    .detail-container { text-align: center; }
+    .detail-img { width: 100%; height: 250px; object-fit: cover; border-radius: 16px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; text-align: left; }
+    .detail-header h2 { margin: 0; font-size: 20px; font-weight: 700; color: #1a1a1a; }
+    .detail-desc { text-align: left; color: #4b5563; line-height: 1.5; margin-bottom: 20px; font-size: 15px; }
+    .detail-meta { background: #f9fafb; border-radius: 12px; padding: 8px; }
+    .status-badge { font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 8px; text-transform: uppercase; }
+    .status-badge.pending { background: #fef3c7; color: #92400e; }
+    .status-badge.resolved { background: #d1fae5; color: #065f46; }
+  `]
+})
+export class ReportDetailModal {
+  @Input() report!: Report;
+  private modalCtrl = inject(ModalController);
+
+  getStatusLabel(status: string): string {
+    const labels: { [key: string]: string } = { 'pending': 'Pendiente', 'reviewing': 'En revisión', 'resolved': 'Resuelto', 'rejected': 'Rechazado' };
+    return labels[status] || status;
+  }
+  dismiss() { this.modalCtrl.dismiss(); }
+}
 
 @Component({
   selector: 'app-report',
   standalone: true,
   imports: [CommonModule, FormsModule, IonicModule],
   template: `
-    <ion-header [translucent]="true" class="page-header">
-      <ion-toolbar>
-        <div class="header-content">
-          <button class="back-btn" (click)="goBack()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-          </button>
-          <span class="header-title">Reportar problemas</span>
-        </div>
+    <ion-header class="ion-no-border">
+      <ion-toolbar color="white">
+        <ion-title mode="ios">Reportes Ciudadanos</ion-title>
+      </ion-toolbar>
+      <ion-toolbar color="white">
+        <ion-segment [(ngModel)]="activeSegment" mode="ios" (ionChange)="segmentChanged()">
+          <ion-segment-button value="new">
+            <ion-label>Nuevo Reporte</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="history">
+            <ion-label>Mis Reportes</ion-label>
+          </ion-segment-button>
+        </ion-segment>
       </ion-toolbar>
     </ion-header>
 
     <ion-content [fullscreen]="true" class="report-content">
-      <!-- Photo Section -->
-      <div class="photo-section" (click)="takePhoto()" [class.has-photo]="photoCaptured">
-        @if (photoCaptured) {
-          <img [src]="photoCaptured" alt="Foto del reporte" class="captured-photo">
-          <button class="retry-btn" (click)="takePhoto(); $event.stopPropagation()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M23 4v6h-6M1 20v-6h6"/>
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-            </svg>
-          </button>
-        } @else {
-          <div class="photo-placeholder">
-            <div class="camera-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                <circle cx="12" cy="13" r="4"/>
-              </svg>
+      <div *ngIf="activeSegment === 'new'" class="animate-fade">
+        <div class="photo-card" (click)="takePhoto()" [class.has-photo]="photoCaptured">
+          @if (photoCaptured) {
+            <img [src]="photoCaptured" alt="Reporte" class="img-full">
+            <div class="badge-change">
+              <ion-icon name="camera-reverse-outline"></ion-icon>
+              <span>Cambiar Foto</span>
             </div>
-            <span class="photo-text">Toca para tomar una foto</span>
-            <span class="photo-hint">Solo se permite cámara en tiempo real</span>
-          </div>
-        }
-      </div>
-
-      <!-- Location Section -->
-      <div class="location-section">
-        <div class="section-header">
-          <span class="section-title">Ubicación del reporte</span>
-          <button class="refresh-btn" (click)="getLocation()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M23 4v6h-6M1 20v-6h6"/>
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-            </svg>
-          </button>
-        </div>
-        <div class="location-info">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-            <circle cx="12" cy="10" r="3"/>
-          </svg>
-          <span>{{ locationText }}</span>
-        </div>
-      </div>
-
-      <!-- Problem Types -->
-      <div class="types-section">
-        <span class="section-title">Tipo de problema</span>
-        <div class="types-grid">
-          @for (type of problemTypes; track type.id) {
-            <button 
-              class="type-btn" 
-              [class.selected]="selectedType === type.id"
-              (click)="selectType(type.id)">
-              <span class="type-icon">{{ type.icon }}</span>
-              <span class="type-label">{{ type.label }}</span>
-            </button>
+          } @else {
+            <div class="empty-photo">
+              <div class="icon-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:32px">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+                </svg>
+              </div>
+              <h3>Capturar Evidencia</h3>
+              <p>Toma una foto real del problema</p>
+            </div>
           }
         </div>
-      </div>
 
-      <!-- Description -->
-      <div class="description-section">
-        <span class="section-title">Descripción (opcional)</span>
-        <textarea 
-          [(ngModel)]="description" 
-          placeholder="Describe el problema con más detalle..."
-          rows="4"></textarea>
-      </div>
-
-      <!-- Submit -->
-      <div class="submit-section">
-        <button class="submit-btn" [disabled]="!canSubmit()" (click)="submitReport()">
-          <span *ngIf="!submitting">Enviar reporte</span>
-          <span *ngIf="submitting">Enviando...</span>
-        </button>
-      </div>
-
-      <!-- History -->
-      <div class="history-section">
-        <h3 class="section-title">Mis reportes</h3>
-        @if (reports.length === 0) {
-          <div class="empty-history">
-            <span>No has realizado ningún reporte</span>
+        <div class="section-card">
+          <div class="card-header">
+            <ion-icon name="location-outline" color="primary"></ion-icon>
+            <ion-label>Ubicación</ion-label>
+            <ion-button fill="clear" size="small" (click)="getCurrentLocation()">
+              <ion-icon name="locate-outline"></ion-icon>
+            </ion-button>
           </div>
-        } @else {
-          <div class="reports-list">
-            @for (report of reports; track report.id) {
-              <div class="report-item">
-                <div class="report-status" [class]="report.status">
-                  {{ getStatusLabel(report.status) }}
-                </div>
-                <div class="report-type">{{ report.type }}</div>
-                <div class="report-date">{{ report.created_at | date:'dd/MM/yyyy HH:mm' }}</div>
-              </div>
-            }
+          <div #reportMap class="map-view"></div>
+        </div>
+
+        <div class="section-card">
+          <div class="input-item">
+            <ion-label position="stacked">Tipo de Incidente</ion-label>
+            <ion-select [(ngModel)]="selectedType" placeholder="Selecciona el problema" interface="action-sheet" class="custom-select">
+              @for (type of problemTypes; track type) {
+                <ion-select-option [value]="type">{{ type }}</ion-select-option>
+              }
+            </ion-select>
+          </div>
+          <div class="input-item">
+            <ion-label position="stacked">Descripción</ion-label>
+            <textarea [(ngModel)]="description" placeholder="Escribe detalles aquí..." rows="4"></textarea>
+          </div>
+        </div>
+
+        <div class="ion-padding">
+          <ion-button expand="block" mode="ios" (click)="submitReport()" [disabled]="!canSubmit() || submitting" class="btn-main">
+            {{ submitting ? 'Enviando...' : 'Enviar Reporte' }}
+          </ion-button>
+        </div>
+      </div>
+
+      <div *ngIf="activeSegment === 'history'" class="animate-fade ion-padding">
+        @for (report of reports; track report.id) {
+          <div class="history-card" (click)="showDetail(report)">
+            <div class="history-thumb">
+              <img [src]="report.photo_url" alt="thumb">
+            </div>
+            <div class="history-data">
+              <span class="type-text">{{ report.type }}</span>
+              <span class="date-text">{{ report.created_at | date:'dd/MM/yyyy' }}</span>
+              <div class="status-badge" [class]="report.status">{{ getStatusLabel(report.status || '') }}</div>
+            </div>
+            <ion-button fill="clear" color="danger" (click)="deleteReport(report.id!); $event.stopPropagation()">
+              <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+            </ion-button>
+          </div>
+        } @empty {
+          <div class="empty-history">
+            <ion-icon name="document-text-outline"></ion-icon>
+            <p>No has realizado reportes</p>
           </div>
         }
       </div>
     </ion-content>
   `,
   styles: [`
-    .page-header {
-      ion-toolbar {
-        --background: white;
-        --border-width: 0 0 1px 0;
-        --border-color: #ebebeb;
-      }
-    }
-
-    .header-content {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 0 16px;
-    }
-
-    .back-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      border: none;
-      background: #f0f0ed;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-
-      svg { width: 18px; height: 18px; color: #666; }
-    }
-
-    .header-title {
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    .report-content {
-      --background: #f9f9f7;
-      --padding-top: 8px;
-    }
-
-    .photo-section {
-      margin: 0 16px 16px;
-      height: 180px;
-      border-radius: 16px;
-      overflow: hidden;
-      border: 2px dashed #e0e0e0;
-      cursor: pointer;
-      position: relative;
-
-      &.has-photo {
-        border-style: solid;
-        border-color: #1D9E75;
-      }
-    }
-
-    .photo-placeholder {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .camera-icon {
-      width: 48px;
-      height: 48px;
-      background: #f0f0ed;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      svg { width: 24px; height: 24px; color: #888; }
-    }
-
-    .photo-text {
-      font-size: 14px;
-      font-weight: 500;
-      color: #333;
-    }
-
-    .photo-hint {
-      font-size: 12px;
-      color: #999;
-    }
-
-    .captured-photo {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .retry-btn {
-      position: absolute;
-      bottom: 12px;
-      right: 12px;
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-      border: none;
-      background: rgba(255,255,255,0.9);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-
-      svg { width: 20px; height: 20px; color: #666; }
-    }
-
-    .location-section, .types-section, .description-section, .history-section {
-      padding: 0 16px;
-      margin-bottom: 20px;
-    }
-
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .section-title {
-      font-size: 15px;
-      font-weight: 600;
-      display: block;
-      margin-bottom: 12px;
-    }
-
-    .refresh-btn {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      border: none;
-      background: #f0f0ed;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-
-      svg { width: 16px; height: 16px; color: #666; }
-    }
-
-    .location-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px;
-      background: white;
-      border-radius: 10px;
-      font-size: 13px;
-      color: #333;
-
-      svg { width: 18px; height: 18px; color: #1D9E75; flex-shrink: 0; }
-    }
-
-    .types-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-
-    .type-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      padding: 16px;
-      background: white;
-      border: 2px solid #ebebeb;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: all 0.15s;
-
-      &.selected {
-        border-color: #1D9E75;
-        background: #E1F5EE;
-      }
-
-      .type-icon { font-size: 24px; }
-      .type-label { font-size: 12px; color: #666; font-weight: 500; }
-    }
-
-    .description-section textarea {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #e0e0e0;
-      border-radius: 10px;
-      font-size: 14px;
-      resize: none;
-      outline: none;
-      box-sizing: border-box;
-      font-family: inherit;
-
-      &:focus { border-color: #1D9E75; }
-    }
-
-    .submit-section {
-      padding: 0 16px;
-      margin-bottom: 24px;
-    }
-
-    .submit-btn {
-      width: 100%;
-      height: 48px;
-      background: #1D9E75;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-
-      &:disabled { opacity: 0.5; }
-    }
-
-    .history-section {
-      padding-bottom: 40px;
-    }
-
-    .empty-history {
-      padding: 30px;
-      text-align: center;
-      color: #aaa;
-      font-size: 13px;
-      background: white;
-      border-radius: 12px;
-    }
-
-    .reports-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .report-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px;
-      background: white;
-      border-radius: 10px;
-    }
-
-    .report-status {
-      font-size: 10px;
-      padding: 3px 8px;
-      border-radius: 20px;
-      font-weight: 500;
-
-      &.pending { background: #FAEEDA; color: #854F0B; }
-      &.reviewing { background: #E6F1FB; color: #185FA5; }
-      &.resolved { background: #E1F5EE; color: #0F6E56; }
-    }
-
-    .report-type { flex: 1; font-size: 13px; font-weight: 500; }
-    .report-date { font-size: 11px; color: #999; }
+    .report-content { --background: #f4f6f9; }
+    .animate-fade { animation: fadeIn 0.3s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .photo-card { margin: 16px; height: 200px; border-radius: 20px; background: white; border: 2px dashed #d1d5db; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; transition: all 0.2s; &.has-photo { border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); } }
+    .empty-photo { text-align: center; padding: 20px; .icon-circle { width: 50px; height: 50px; background: #f3f4f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; color: #6b7280; } h3 { margin: 0; font-size: 15px; font-weight: 700; color: #374151; } p { margin: 4px 0 0; font-size: 11px; color: #9ca3af; } }
+    .img-full { width: 100%; height: 100%; object-fit: cover; }
+    .badge-change { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 4px 10px; border-radius: 20px; display: flex; align-items: center; gap: 4px; font-size: 11px; }
+    .section-card { background: white; margin: 0 16px 16px; border-radius: 16px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); .card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; ion-label { font-weight: 700; color: #374151; flex: 1; } } }
+    .map-view { height: 150px; border-radius: 12px; overflow: hidden; }
+    .input-item { margin-bottom: 16px; ion-label { font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 8px; display: block; } }
+    .custom-select { --background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; }
+    textarea { width: 100%; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; font-family: inherit; font-size: 14px; outline: none; }
+    .btn-main { --border-radius: 12px; height: 50px; font-weight: 700; }
+    .history-card { background: white; border-radius: 14px; padding: 10px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); .history-thumb { width: 60px; height: 60px; border-radius: 10px; overflow: hidden; img { width: 100%; height: 100%; object-fit: cover; } } .history-data { flex: 1; display: flex; flex-direction: column; gap: 2px; } .type-text { font-size: 14px; font-weight: 700; color: #1f2937; } .date-text { font-size: 11px; color: #6b7280; } }
+    .status-badge { font-size: 9px; font-weight: 800; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; width: fit-content; &.pending { background: #fef3c7; color: #92400e; } &.resolved { background: #d1fae5; color: #065f46; } }
+    .empty-history { text-align: center; padding: 40px; color: #9ca3af; ion-icon { font-size: 40px; } }
   `]
 })
-export class ReportPage {
-  private router = inject(Router);
+export class ReportPage implements OnInit, AfterViewInit {
+  @ViewChild('reportMap') mapContainer!: ElementRef;
 
+  private reportService = inject(ReportService);
+  private toastCtrl = inject(ToastController);
+  private alertCtrl = inject(AlertController);
+  private loadingCtrl = inject(LoadingController);
+  private modalCtrl = inject(ModalController);
+
+  activeSegment: string = 'new';
   photoCaptured: string | null = null;
-  latitude: number | null = null;
-  longitude: number | null = null;
-  locationText = 'Obteniendo ubicación...';
   selectedType: string | null = null;
-  description = '';
+  description: string = '';
   submitting = false;
+  reports: Report[] = [];
 
-  problemTypes = [
-    { id: 'basura', label: 'Basura acumulada', icon: '🗑️' },
-    { id: 'camion', label: 'Camión no pasó', icon: '🚛' },
-    { id: 'contenedor', label: 'Contenedor dañado', icon: '🛑' },
-    { id: 'punto', label: 'Punto ilegal', icon: '⚠️' }
-  ];
+  latitude: number = 2.9273;
+  longitude: number = -75.2819;
+  private map: L.Map | null = null;
+  private marker: L.Marker | null = null;
 
-  reports = [
-    { id: '1', type: 'Basura acumulada', status: 'resolved', created_at: new Date('2026-04-01') },
-    { id: '2', type: 'Camión no pasó', status: 'reviewing', created_at: new Date('2026-04-05') }
-  ];
+  problemTypes = ['Basura acumulada', 'Camión no pasó', 'Contenedor dañado', 'Punto ilegal de residuos', 'Otros'];
 
-  constructor() {
-    this.getLocation();
+  ngOnInit() { this.loadMyReports(); }
+
+  ngAfterViewInit() { if (this.activeSegment === 'new') setTimeout(() => this.initMap(), 500); }
+
+  segmentChanged() {
+    if (this.activeSegment === 'new') {
+      setTimeout(() => { this.initMap(); if (this.map) this.map.invalidateSize(); }, 100);
+    } else { this.loadMyReports(); }
   }
 
-  async getLocation() {
+  private initMap() {
+    if (this.map) return;
+    this.map = L.map(this.mapContainer.nativeElement, { center: [this.latitude, this.longitude], zoom: 16, zoomControl: false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.map);
+    this.marker = L.marker([this.latitude, this.longitude], { draggable: true }).addTo(this.map);
+    this.marker.on('dragend', () => { const pos = this.marker!.getLatLng(); this.latitude = pos.lat; this.longitude = pos.lng; });
+    this.getCurrentLocation();
+  }
+
+  async getCurrentLocation() {
     try {
-      const position = await Geolocation.getCurrentPosition();
-      this.latitude = position.coords.latitude;
-      this.longitude = position.coords.longitude;
-      this.locationText = `Lat: ${this.latitude.toFixed(4)}, Lng: ${this.longitude.toFixed(4)}`;
-    } catch {
-      this.locationText = 'Ubicación no disponible';
-    }
+      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+      this.latitude = pos.coords.latitude;
+      this.longitude = pos.coords.longitude;
+      if (this.map && this.marker) {
+        this.map.setView([this.latitude, this.longitude], 16);
+        this.marker.setLatLng([this.latitude, this.longitude]);
+      }
+    } catch (e) { this.showToast('No se pudo obtener la ubicación exacta', 'warning'); }
   }
 
-  takePhoto() {
-    // In production, would use Camera plugin
-    this.photoCaptured = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiB2aWV3Qm94PSIwIDAgMjAwIDE1MCI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxNTAiIGZpbGw9IiNlOGU4ZTgiLz48dGV4dCB4PSIxMDAiIHk9Ijc1IiBmb250LXNpemU9IjE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTk5Ij5BcnJlZ2EgMTwvL3RleHQ+PC9zdmc+';
+  async takePhoto() {
+    try {
+      const image = await Camera.getPhoto({ quality: 90, resultType: CameraResultType.DataUrl, source: CameraSource.Camera });
+      this.photoCaptured = image.dataUrl || null;
+    } catch (e) {}
   }
 
-  selectType(id: string) {
-    this.selectedType = id;
-  }
+  canSubmit() { return this.photoCaptured && this.selectedType && this.description.trim().length >= 5; }
 
-  canSubmit(): boolean {
-    return !!this.selectedType;
-  }
-
-  submitReport() {
+  async submitReport() {
     if (!this.canSubmit()) return;
     this.submitting = true;
-    
-    setTimeout(() => {
-      this.submitting = false;
-      this.photoCaptured = null;
-      this.selectedType = null;
-      this.description = '';
-    }, 1500);
+    const loading = await this.loadingCtrl.create({ message: 'Enviando...' });
+    await loading.present();
+
+    const newReport = { type: this.selectedType!, description: this.description.trim(), photo_url: this.photoCaptured!, latitude: this.latitude, longitude: this.longitude };
+    this.reportService.createReport(newReport).subscribe({
+      next: () => { loading.dismiss(); this.submitting = false; this.showToast('Reporte enviado', 'success'); this.resetForm(); this.activeSegment = 'history'; this.loadMyReports(); },
+      error: () => { loading.dismiss(); this.submitting = false; this.showToast('Error de servidor', 'danger'); }
+    });
+  }
+
+  loadMyReports() {
+    this.reportService.getUserReports().subscribe({
+      next: (res: any) => { this.reports = res.data || res; },
+      error: () => this.showToast('Error al cargar historial', 'danger')
+    });
+  }
+
+  async deleteReport(id: string) {
+    const alert = await this.alertCtrl.create({
+      header: 'Eliminar', message: '¿Borrar reporte?',
+      buttons: [{ text: 'No', role: 'cancel' }, { text: 'Sí', handler: () => { this.reportService.deleteReport(id).subscribe(() => { this.showToast('Eliminado', 'success'); this.loadMyReports(); }); } }]
+    });
+    await alert.present();
+  }
+
+  async showDetail(report: Report) {
+    const modal = await this.modalCtrl.create({
+      component: ReportDetailModal,
+      componentProps: { report }
+    });
+    await modal.present();
   }
 
   getStatusLabel(status: string): string {
-    switch (status) {
-      case 'pending': return 'Pendiente';
-      case 'reviewing': return 'En revisión';
-      case 'resolved': return 'Resuelto';
-      default: return status;
-    }
+    const labels: { [key: string]: string } = { 'pending': 'Pendiente', 'resolved': 'Resuelto' };
+    return labels[status] || status;
   }
 
-  goBack() {
-    this.router.navigate(['/tabs/home']);
+  resetForm() { this.photoCaptured = null; this.selectedType = null; this.description = ''; }
+
+  async showToast(message: string, color: string) {
+    const t = await this.toastCtrl.create({ message, color, duration: 2000, position: 'bottom' });
+    t.present();
   }
 }

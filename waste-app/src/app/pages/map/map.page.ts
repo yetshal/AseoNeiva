@@ -1,12 +1,14 @@
-import { Component, OnInit, inject, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, OnInit, inject, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import * as L from 'leaflet';
+import { FleetService, Vehicle } from '../../services/fleet.service';
+import { HttpClientModule } from '@angular/common/http';
 
 @Component({
   selector: 'app-map',
   standalone: true,
-  imports: [CommonModule, IonicModule],
+  imports: [CommonModule, IonicModule, HttpClientModule],
   template: `
     <ion-header [translucent]="true" class="page-header">
       <ion-toolbar>
@@ -25,32 +27,36 @@ import * as L from 'leaflet';
     <ion-content [fullscreen]="true" class="map-content">
       <div #mapContainer class="map-container"></div>
 
-      <div class="truck-info-card">
-        <div class="truck-header">
-          <span class="truck-plate">HUQ-432</span>
-          <span class="truck-status in-route">En camino</span>
+      @if (selectedTruck) {
+        <div class="truck-info-card">
+          <div class="truck-header">
+            <span class="truck-plate">{{ selectedTruck.plate }}</span>
+            <span class="truck-status" [class]="selectedTruck.status">
+              {{ selectedTruck.status === 'active' ? 'En camino' : 'Fuera de servicio' }}
+            </span>
+          </div>
+          <div class="truck-details">
+            <div class="detail-item">
+              <span class="detail-label">Llegada estimada</span>
+              <span class="detail-value">{{ (selectedTruck.distance || 0) / 80 | number:'1.0-0' }} min</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Conductor</span>
+              <span class="detail-value">{{ selectedTruck.driver_name }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Distancia</span>
+              <span class="detail-value">{{ selectedTruck.distance || 0 }} m</span>
+            </div>
+          </div>
         </div>
-        <div class="truck-details">
-          <div class="detail-item">
-            <span class="detail-label">Llegada estimada</span>
-            <span class="detail-value">12 min</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Conductor</span>
-            <span class="detail-value">Carlos Medina</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Distancia</span>
-            <span class="detail-value">800 m</span>
-          </div>
-        </div>
-      </div>
+      }
 
       <div class="nearby-trucks">
-        <h3 class="section-title">Camiones cercanos</h3>
+        <h3 class="section-title">Camiones en operación</h3>
         <div class="truck-list">
-          @for (truck of nearbyTrucks; track truck.plate) {
-            <div class="truck-item" (click)="selectTruck(truck.plate)">
+          @for (truck of nearbyTrucks; track truck.id) {
+            <div class="truck-item" (click)="selectTruck(truck)">
               <div class="truck-icon" [class]="truck.status">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
@@ -59,9 +65,13 @@ import * as L from 'leaflet';
               </div>
               <div class="truck-info">
                 <span class="truck-plates">{{ truck.plate }}</span>
-                <span class="truck-driver">{{ truck.driver }}</span>
+                <span class="truck-driver">{{ truck.driver_name }}</span>
               </div>
-              <span class="truck-distance">{{ truck.distance }}m</span>
+              <span class="truck-distance">{{ truck.distance || 0 }}m</span>
+            </div>
+          } @empty {
+            <div class="ion-padding ion-text-center">
+              <p>No hay camiones en operación en este momento.</p>
             </div>
           }
         </div>
@@ -74,6 +84,7 @@ import * as L from 'leaflet';
         --background: white;
         --border-width: 0 0 1px 0;
         --border-color: #ebebeb;
+        color: #1a1a1a;
       }
     }
 
@@ -82,11 +93,21 @@ import * as L from 'leaflet';
       justify-content: space-between;
       align-items: center;
       padding: 0 16px;
+      color: #1a1a1a;
     }
 
     .header-title {
       font-size: 18px;
       font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .map-container {
+      height: 45vh;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
     }
 
     .icon-btn {
@@ -109,11 +130,6 @@ import * as L from 'leaflet';
 
     .map-content {
       --background: #f9f9f7;
-    }
-
-    .map-container {
-      height: 45vh;
-      width: 100%;
     }
 
     .truck-info-card {
@@ -144,9 +160,8 @@ import * as L from 'leaflet';
       border-radius: 20px;
       font-weight: 500;
 
-      &.in-route { background: #E1F5EE; color: #0F6E56; }
-      &.collected { background: #E6F1FB; color: #185FA5; }
-      &.out { background: #f0f0ee; color: #888; }
+      &.active { background: #E1F5EE; color: #0F6E56; }
+      &.inactive { background: #f0f0ee; color: #888; }
     }
 
     .truck-details {
@@ -205,9 +220,8 @@ import * as L from 'leaflet';
       align-items: center;
       justify-content: center;
 
-      &.in-route { background: #E1F5EE; color: #0F6E56; }
-      &.collected { background: #E6F1FB; color: #185FA5; }
-      &.out { background: #f0f0ee; color: #888; }
+      &.active { background: #E1F5EE; color: #0F6E56; }
+      &.inactive { background: #f0f0ee; color: #888; }
 
       svg { width: 18px; height: 18px; }
     }
@@ -235,60 +249,135 @@ import * as L from 'leaflet';
     }
   `]
 })
-export class MapPage implements OnInit, AfterViewInit {
+export class MapPage implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('mapContainer') mapContainer!: ElementRef;
 
+  private fleetService = inject(FleetService);
   private map: L.Map | null = null;
-  private userMarker: L.CircleMarker | null = null;
-  private truckMarker: L.CircleMarker | null = null;
+  private userMarker: L.Marker | null = null;
+  private truckMarkers: Map<string, L.Marker> = new Map();
+  private refreshInterval: any;
 
-  nearbyTrucks = [
-    { plate: 'HUQ-432', driver: 'Carlos Medina', status: 'in-route', distance: 800 },
-    { plate: 'HUQ-561', driver: 'Pedro Ospina', status: 'in-route', distance: 1200 },
-    { plate: 'HUQ-290', driver: 'Jhon Vargas', status: 'collected', distance: 2500 }
-  ];
-
-  private readonly CENTER = L.latLng(2.9273, -75.2819);
+  nearbyTrucks: Vehicle[] = [];
+  selectedTruck: Vehicle | null = null;
+  userCoords: { lat: number, lng: number } = { lat: 2.9273, lng: -75.2819 };
 
   ngOnInit() {}
 
   ngAfterViewInit() {
-    this.initMap();
+    setTimeout(() => this.initMap(), 300);
+  }
+
+  ngOnDestroy() {
+    if (this.refreshInterval) clearInterval(this.refreshInterval);
+  }
+
+  ionViewDidEnter() {
+    if (this.map) this.map.invalidateSize();
   }
 
   private initMap(): void {
+    if (this.map) return;
+
     this.map = L.map(this.mapContainer.nativeElement, {
-      center: this.CENTER,
+      center: [this.userCoords.lat, this.userCoords.lng],
       zoom: 15,
-      zoomControl: true,
+      zoomControl: false,
     });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap'
+      attribution: '© OSM'
     }).addTo(this.map);
 
-    this.userMarker = L.circleMarker(this.CENTER, {
-      radius: 12,
-      fillColor: '#185FA5',
-      color: '#ffffff',
-      weight: 3,
-      fillOpacity: 1
-    }).addTo(this.map);
+    const userIcon = L.divIcon({
+      className: 'user-location-icon',
+      html: '<div style="background: #185FA5; width: 15px; height: 15px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.3);"></div>',
+      iconSize: [15, 15]
+    });
 
-    const truckPos = L.latLng(2.9341, -75.2765);
-    this.truckMarker = L.circleMarker(truckPos, {
-      radius: 14,
-      fillColor: '#1D9E75',
-      color: '#ffffff',
-      weight: 3,
-      fillOpacity: 1
-    }).addTo(this.map);
+    this.userMarker = L.marker([this.userCoords.lat, this.userCoords.lng], { icon: userIcon }).addTo(this.map);
 
-    this.userMarker.bindPopup('Tu ubicación');
-    this.truckMarker.bindPopup('Camión HUQ-432');
+    this.loadRealData();
+    this.getCurrentLocation();
+    
+    this.refreshInterval = setInterval(() => this.loadRealData(), 10000);
   }
 
-  selectTruck(plate: string) {
-    console.log('Selected truck:', plate);
+  private loadRealData() {
+    this.fleetService.getActiveVehicles().subscribe({
+      next: (vehicles) => {
+        this.nearbyTrucks = vehicles.map(v => ({
+          ...v,
+          distance: this.calculateDistance(this.userCoords.lat, this.userCoords.lng, Number(v.latitude), Number(v.longitude))
+        })).sort((a, b) => (a.distance || 0) - (b.distance || 0));
+
+        if (!this.selectedTruck && this.nearbyTrucks.length > 0) {
+          this.selectedTruck = this.nearbyTrucks[0];
+        }
+
+        this.updateMarkers();
+      }
+    });
+  }
+
+  private updateMarkers() {
+    if (!this.map) return;
+
+    const truckIconHtml = (color: string) => `
+      <div style="background: ${color}; width: 30px; height: 30px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+          <path d="M3 4h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+        </svg>
+      </div>
+    `;
+
+    this.nearbyTrucks.forEach(truck => {
+      const color = truck.status === 'active' ? '#1D9E75' : '#888';
+      const icon = L.divIcon({
+        className: 'truck-map-icon',
+        html: truckIconHtml(color),
+        iconSize: [30, 30]
+      });
+
+      const coords: L.LatLngExpression = [Number(truck.latitude), Number(truck.longitude)];
+
+      if (this.truckMarkers.has(truck.id)) {
+        this.truckMarkers.get(truck.id)!.setLatLng(coords);
+      } else {
+        const marker = L.marker(coords, { icon }).addTo(this.map!);
+        marker.bindPopup(`<b>${truck.plate}</b><br>${truck.driver_name}`);
+        this.truckMarkers.set(truck.id, marker);
+      }
+    });
+  }
+
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371e3;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Math.round(R * c);
+  }
+
+  private getCurrentLocation() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        this.userCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
+        this.userMarker?.setLatLng([this.userCoords.lat, this.userCoords.lng]);
+        this.map?.setView([this.userCoords.lat, this.userCoords.lng], 15);
+        this.loadRealData();
+      });
+    }
+  }
+
+  selectTruck(truck: Vehicle) {
+    this.selectedTruck = truck;
+    if (this.map) {
+      this.map.flyTo([Number(truck.latitude), Number(truck.longitude)], 16);
+      this.truckMarkers.get(truck.id)?.openPopup();
+    }
   }
 }

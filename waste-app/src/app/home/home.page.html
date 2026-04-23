@@ -4,6 +4,10 @@
       <div class="user-info">
         <span class="greeting">Hola,</span>
         <span class="user-name">{{ user?.name || 'Usuario' }}</span>
+        <div class="level-badge" *ngIf="user">
+          <span class="level-icon">LVL {{ user.level || 1 }}</span>
+          <span class="level-name">{{ getLevelTitle() }}</span>
+        </div>
       </div>
       <div class="header-actions">
         <button class="icon-btn" (click)="goToNotifications()">
@@ -32,69 +36,108 @@
     </div>
     <div class="address-text">
       <span class="address-label">Tu ubicación</span>
-      <span class="address-value">{{ user?.address || 'Sin dirección registrada' }}</span>
+      <span class="address-value">{{ user?.address || 'Cargando ubicación...' }}</span>
+    </div>
+  </div>
+
+  <!-- Level Progress -->
+  <div class="level-progress-section">
+    <div class="progress-header">
+      <span>Progreso al siguiente nivel</span>
+      <span>{{ levelProgress }}%</span>
+    </div>
+    <div class="progress-bar-container">
+      <div class="progress-bar-fill" [style.width.%]="levelProgress"></div>
     </div>
   </div>
 
   <!-- ETA Card -->
   <div class="eta-card">
     <div class="eta-header">
-      <span class="eta-title">El camión está en camino</span>
-      <span class="eta-badge">En tiempo</span>
+      <span class="eta-title">Seguimiento en vivo</span>
+      <span class="eta-badge" [class.active]="estimatedMinutes > 0">
+        {{ estimatedMinutes > 0 ? 'En camino' : 'Programado' }}
+      </span>
     </div>
     <div class="eta-body">
       <div class="eta-item">
-        <span class="eta-value">{{ estimatedMinutes }}</span>
+        <span class="eta-value">{{ estimatedMinutes > 0 ? estimatedMinutes : '--' }}</span>
         <span class="eta-unit">min</span>
       </div>
       <div class="eta-divider"></div>
       <div class="eta-item">
-        <span class="eta-value">{{ estimatedMeters }}</span>
+        <span class="eta-value">{{ estimatedMeters > 0 ? estimatedMeters : '--' }}</span>
         <span class="eta-unit">m</span>
       </div>
     </div>
     <div class="eta-footer">
-      <span>Llegará aproximadamente a las {{ nextCollectionTime }}</span>
+      <span>Próxima recolección: <strong>{{ nextCollectionTime }}</strong></span>
     </div>
   </div>
 
-  <!-- Time to Take Trash -->
-  <div class="trash-alert" [class.active]="isTimeToTakeTrash">
-    <div class="trash-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-      </svg>
+  <!-- Time to Take Trash - SOLO SI ES ACTIVO -->
+  @if (isTimeToTakeTrash) {
+    <div class="trash-alert active">
+      <div class="trash-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+        </svg>
+      </div>
+      <div class="trash-text">
+        <span class="trash-title">¡Es hora de sacar la basura!</span>
+        <span class="trash-subtitle">El camión pasará pronto por tu zona</span>
+      </div>
     </div>
-    <div class="trash-text">
-      <span class="trash-title">¡Es hora de sacar la basura!</span>
-      <span class="trash-subtitle">El camión pasará pronto por tu zona</span>
-    </div>
-  </div>
+  }
 
   <!-- Schedule Section -->
   <div class="schedule-section">
-    <h2 class="section-title">Horario de recolección</h2>
-    <div class="schedule-list">
-      @for (schedule of collectionSchedule; track schedule.day) {
-        <div class="schedule-item">
-          <div class="schedule-day">{{ schedule.day }}</div>
-          <div class="schedule-time">{{ schedule.time }}</div>
-          <div class="schedule-zone">{{ schedule.zone }}</div>
-        </div>
-      }
+    <div class="section-header">
+      <h2 class="section-title">Horario de recolección</h2>
+      <button class="btn-config" (click)="openScheduleConfig()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
     </div>
+
+    @if (collectionSchedule.length > 0) {
+      <div class="schedule-list">
+        @for (schedule of collectionSchedule; track schedule.day) {
+          <div class="schedule-item">
+            <div class="schedule-day">{{ schedule.day }}</div>
+            <div class="schedule-time">{{ schedule.time }}</div>
+            <div class="schedule-zone">Tu ubicación</div>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="empty-schedule" (click)="openScheduleConfig()">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+        <p>No tienes horarios configurados</p>
+        <button class="btn-setup">Configurar ahora</button>
+      </div>
+    }
   </div>
 
-  <!-- Points & Streak Section -->
+  <!-- Gamification Section -->
   <div class="gamification-section">
-    <div class="gamification-card points" (click)="registerTrashCollection()">
+    <div class="gamification-card points">
       <div class="g-icon">
         <svg viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
         </svg>
       </div>
       <div class="g-content">
-        <span class="g-value">{{ user?.points || currentPoints }}</span>
+        <span class="g-value">{{ currentPoints }}</span>
         <span class="g-label">Puntos</span>
       </div>
     </div>
@@ -106,8 +149,8 @@
         </svg>
       </div>
       <div class="g-content">
-        <span class="g-value">{{ user?.streak || currentStreak }} días</span>
-        <span class="g-label">Racha actual</span>
+        <span class="g-value">{{ currentStreak }}</span>
+        <span class="g-label">Días racha</span>
       </div>
     </div>
 
@@ -119,19 +162,9 @@
         </svg>
       </div>
       <div class="g-content">
-        <span class="g-value">{{ recordStreak }} días</span>
-        <span class="g-label">Récord</span>
+        <span class="g-value">{{ recordStreak }}</span>
+        <span class="g-label">Días récord</span>
       </div>
     </div>
-  </div>
-  
-  <div class="action-section">
-    <button class="collect-btn" (click)="registerTrashCollection()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-        <polyline points="22 4 12 14.01 9 11.01"/>
-      </svg>
-      <span>¡Confirmar que saqué la basura!</span>
-    </button>
   </div>
 </ion-content>

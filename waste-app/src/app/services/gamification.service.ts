@@ -47,6 +47,7 @@ export interface GamificationProfile {
     total_collections: number;
     total_reports: number;
     valid_reports: number;
+    collection_schedule?: any[];
   };
   currentLevel: Level;
   nextLevel: Level | null;

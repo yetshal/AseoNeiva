@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { pool } from "../../config/db";
+import { CitizenRequest } from "../../middleware/citizen-auth";
 
 interface AuthRequest extends Request {
   admin?: { id: string; role: string };
@@ -32,14 +33,14 @@ export const getAllReports = async (req: AuthRequest, res: Response) => {
       whereClause = 'WHERE ' + conditions.join(' AND ');
     }
 
-    const offset = ((page as number) - 1) * (limit as number);
+    const offset = ((Number(page)) - 1) * Number(limit);
 
     const countResult = await pool.query(
       `SELECT COUNT(*) FROM reports r LEFT JOIN users u ON r.user_id = u.id ${whereClause}`,
       params
     );
 
-    params.push(limit, offset);
+    params.push(Number(limit), offset);
     const result = await pool.query(
       `SELECT r.id, r.type, r.description, r.photo_url, r.latitude, r.longitude, 
               r.status, r.created_at, u.id as user_id, u.name as user_name, u.email as user_email,
@@ -89,7 +90,7 @@ export const getAllReports = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getReportById = async (req: AuthRequest, res: Response) => {
+export const getReportById = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
@@ -142,12 +143,51 @@ export const getReportById = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const getMyReports = async (req: CitizenRequest, res: Response) => {
+  const userId = req.citizen?.id;
+  try {
+    const result = await pool.query(
+      `SELECT r.*, rv.is_valid, rv.validation_notes
+       FROM reports r
+       LEFT JOIN report_validations rv ON r.id = rv.report_id
+       WHERE r.user_id = $1
+       ORDER BY r.created_at DESC`,
+      [userId]
+    );
+    res.json({ data: result.rows });
+  } catch (err) {
+    console.error("getMyReports error:", err);
+    res.status(500).json({ message: "Error del servidor" });
+  }
+};
+
+export const createReport = async (req: CitizenRequest, res: Response) => {
+  const userId = req.citizen?.id;
+  const { type, description, photoUrl, latitude, longitude } = req.body;
+
+  if (!type || !description || !photoUrl || !latitude || !longitude) {
+    return res.status(400).json({ message: "Todos los campos son obligatorios" });
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO reports (user_id, type, description, photo_url, latitude, longitude, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+       RETURNING *`,
+      [userId, type, description, photoUrl, latitude, longitude]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error("createReport error:", err);
+    res.status(500).json({ message: "Error del servidor" });
+  }
+};
+
 export const updateReportStatus = async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const { status } = req.body;
-  const adminId = req.admin?.id;
 
-  const validStatuses = ['pending', 'reviewing', 'resolved'];
+  const validStatuses = ['pending', 'reviewing', 'resolved', 'rejected'];
   if (!validStatuses.includes(status)) {
     return res.status(400).json({ message: "Estado inválido" });
   }
@@ -169,12 +209,25 @@ export const updateReportStatus = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const deleteReport = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query("DELETE FROM reports WHERE id = $1 RETURNING id", [id]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Reporte no encontrado" });
+    }
+    res.json({ message: "Reporte eliminado correctamente" });
+  } catch (err) {
+    console.error("deleteReport error:", err);
+    res.status(500).json({ message: "Error del servidor" });
+  }
+};
+
 export const validateReportAndAwardPoints = async (req: AuthRequest, res: Response) => {
   const { reportId } = req.params;
   const { isValid, notes } = req.body;
   const adminId = req.admin?.id;
-
-  console.log("validateReportAndAwardPoints called:", { reportId, isValid, notes, adminId });
 
   if (isValid === undefined) {
     return res.status(400).json({ message: "isValid es requerido" });
@@ -203,9 +256,6 @@ export const validateReportAndAwardPoints = async (req: AuthRequest, res: Respon
     const previousValidation = existingValidation.rows[0];
     const wasValid = previousValidation ? previousValidation.is_valid : null;
 
-    console.log("Validación anterior:", wasValid);
-
-    // Si ya existe validación, actualizamos en lugar de insertar
     if (previousValidation) {
       await client.query(
         `UPDATE report_validations 
@@ -214,15 +264,10 @@ export const validateReportAndAwardPoints = async (req: AuthRequest, res: Respon
         [isValid, notes || null, reportId]
       );
     } else {
-      // Use NULL if adminId is undefined to avoid FK error
-      const validatedByValue = adminId || null;
-      
-      console.log("Inserting validation with validated_by:", validatedByValue);
-      
       await client.query(
         `INSERT INTO report_validations (report_id, validated_by, is_valid, validation_notes)
          VALUES ($1, $2, $3, $4)`,
-        [reportId, validatedByValue, isValid, notes || null]
+        [reportId, adminId || null, isValid, notes || null]
       );
     }
 
@@ -235,57 +280,36 @@ export const validateReportAndAwardPoints = async (req: AuthRequest, res: Respon
     const userId = reportResult.rows[0].user_id;
     let pointsAwarded = 0;
 
-    console.log("User ID del reporte:", userId);
-
     if (userId) {
-      // Ajuste de puntos según validación anterior
       if (wasValid === true && !isValid) {
-        // Antes era válido, ahora es inválido -> restar puntos
         await client.query(
           "UPDATE users SET valid_reports = COALESCE(valid_reports, 0) - 1, points = points - 5 WHERE id = $1",
           [userId]
         );
-        console.log("Restando 5 puntos (invalidando reporte previamente válido)");
       } else if (wasValid === false && isValid) {
-        // Antes era inválido, ahora es válido -> sumar puntos
         await client.query(
           "UPDATE users SET valid_reports = COALESCE(valid_reports, 0) + 1, points = points + 5 WHERE id = $1",
           [userId]
         );
-        console.log("Sumando 5 puntos (re-validando reporte previamente inválido)");
       } else if (wasValid === null) {
-        // No había validación anterior -> comportamiento normal
         await client.query(
           "UPDATE users SET total_reports = COALESCE(total_reports, 0) + 1 WHERE id = $1",
           [userId]
         );
-
         if (isValid) {
-          const reportReward = 5;
-          pointsAwarded = reportReward;
-
-          console.log("Otorgando", pointsAwarded, "puntos al usuario", userId);
-
+          pointsAwarded = 5;
           await client.query(
             "UPDATE users SET valid_reports = COALESCE(valid_reports, 0) + 1, points = points + $1 WHERE id = $2",
-            [reportReward, userId]
+            [pointsAwarded, userId]
           );
         }
       }
-    } else {
-      console.log("El reporte no tiene usuario asociado (user_id es null)");
     }
 
     await client.query("COMMIT");
-
-    res.json({
-      message: isValid ? "Reporte validado como válido (+5 puntos)" : "Reporte marcado como inválido",
-      pointsAwarded,
-      validated: true
-    });
+    res.json({ message: isValid ? "Reporte validado" : "Reporte invalidado", pointsAwarded });
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error("validateReportAndAwardPoints error:", err);
     res.status(500).json({ message: "Error del servidor" });
   } finally {
     client.release();

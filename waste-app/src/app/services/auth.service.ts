@@ -98,4 +98,14 @@ export class AuthService {
     localStorage.setItem(this.userKey, JSON.stringify(user));
     this.currentUserSubject.next(user);
   }
+
+  updateProfile(data: any): Observable<{ user: User }> {
+    return this.http.patch<{ user: User }>(`${this.apiUrl}/citizen/profile`, data)
+      .pipe(
+        tap(response => {
+          this.updateUser(response.user);
+        }),
+        catchError(this.handleError)
+      );
+  }
 }

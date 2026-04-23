@@ -48,7 +48,7 @@ export const getUserById = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   const userRes = await pool.query(
-    'SELECT id, name, email, phone, address, points, streak, level, status, user_type, created_at FROM users WHERE id = $1',
+    'SELECT id, name, email, phone, address, points, streak, level, status, user_type, collection_schedule, created_at FROM users WHERE id = $1',
     [id]
   );
   if (!userRes.rows[0]) return res.status(404).json({ message: 'Usuario no encontrado' });
@@ -158,7 +158,7 @@ export const createUser = async (req: Request, res: Response) => {
 
 export const updateUser = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, email, phone, user_type, status } = req.body;
+  const { name, email, phone, user_type, status, collection_schedule } = req.body;
 
   try {
     const result = await pool.query(
@@ -168,10 +168,11 @@ export const updateUser = async (req: Request, res: Response) => {
            phone = COALESCE($3, phone),
            user_type = COALESCE($4, user_type),
            status = COALESCE($5, status),
+           collection_schedule = COALESCE($6, collection_schedule),
            updated_at = NOW()
-       WHERE id = $6
-       RETURNING id, name, email, phone, user_type, status, updated_at`,
-      [name, email, phone, user_type, status, id]
+       WHERE id = $7
+       RETURNING id, name, email, phone, user_type, status, collection_schedule, updated_at`,
+      [name, email, phone, user_type, status, collection_schedule ? JSON.stringify(collection_schedule) : null, id]
     );
 
     if (!result.rows[0]) return res.status(404).json({ message: 'Usuario no encontrado' });

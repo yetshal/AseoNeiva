@@ -9,6 +9,7 @@ export interface User {
   streak: number;
   level: number;
   status: 'active' | 'inactive' | 'pending';
+  collection_schedule?: any[];
   created_at: string;
 }
 

@@ -20,7 +20,7 @@ export const getUserGamification = async (req: CitizenRequest, res: Response) =>
   try {
     const userResult = await pool.query(
       `SELECT id, name, email, points, streak, level, user_type, 
-              total_collections, total_reports, valid_reports, weekly_streak_data
+              total_collections, total_reports, valid_reports, weekly_streak_data, collection_schedule
        FROM users WHERE id = $1`,
       [userId]
     );
@@ -80,7 +80,8 @@ export const getUserGamification = async (req: CitizenRequest, res: Response) =>
         user_type: user.user_type,
         total_collections: Number(user.total_collections || 0),
         total_reports: Number(user.total_reports || 0),
-        valid_reports: Number(user.valid_reports || 0)
+        valid_reports: Number(user.valid_reports || 0),
+        collection_schedule: user.collection_schedule
       },
       currentLevel: currentLevelResult.rows[0] || null,
       nextLevel: nextLevelResult.rows[0] || null,

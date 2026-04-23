@@ -1,10 +1,13 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonicModule } from '@ionic/angular';
+import { IonicModule, ModalController, ToastController } from '@ionic/angular';
 import { AuthService } from '../services/auth.service';
 import { GamificationService } from '../services/gamification.service';
+import { FleetService, Vehicle } from '../services/fleet.service';
 import { Router } from '@angular/router';
-import { ToastController } from '@ionic/angular';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment';
+import { ScheduleModalComponent } from './schedule-modal.component';
 
 @Component({
   selector: 'app-home',
@@ -16,28 +19,51 @@ import { ToastController } from '@ionic/angular';
 export class HomePage implements OnInit {
   private auth = inject(AuthService);
   private gamification = inject(GamificationService);
+  private fleet = inject(FleetService);
   private router = inject(Router);
   private toastCtrl = inject(ToastController);
+  private modalCtrl = inject(ModalController);
+  private http = inject(HttpClient);
+  private apiUrl = (environment as any).apiUrl;
 
   user = this.auth.getCurrentUser();
   
-  estimatedMinutes = 12;
-  estimatedMeters = 800;
-  isTimeToTakeTrash = true;
-  nextCollectionTime = '6:00 AM';
+  estimatedMinutes = 0;
+  estimatedMeters = 0;
+  isTimeToTakeTrash = false;
+  nextCollectionTime = '--:--';
+  
   currentPoints = 0;
   currentStreak = 0;
-  recordStreak = 21;
+  recordStreak = 0;
+  levelProgress = 0;
+  validReports = 0;
 
-  collectionSchedule = [
-    { day: 'Lunes', time: '6:00 AM', zone: 'Norte' },
-    { day: 'Miércoles', time: '6:00 AM', zone: 'Sur' },
-    { day: 'Viernes', time: '6:00 AM', zone: 'Centro' }
-  ];
+  collectionSchedule: any[] = [];
+  activeVehicles: Vehicle[] = [];
 
   ngOnInit() {
+    this.refreshUserData();
+    this.loadActiveFleet();
+    this.startStatusTimer();
+  }
+
+  refreshUserData() {
     this.user = this.auth.getCurrentUser();
+    if (this.user?.collection_schedule) {
+      this.collectionSchedule = this.user.collection_schedule;
+    }
     this.loadGamificationData();
+  }
+
+  loadActiveFleet() {
+    this.fleet.getActiveVehicles().subscribe({
+      next: (v) => {
+        this.activeVehicles = v;
+        this.updateStatus();
+      },
+      error: () => { this.activeVehicles = []; }
+    });
   }
 
   loadGamificationData() {
@@ -45,70 +71,91 @@ export class HomePage implements OnInit {
       next: (data) => {
         this.currentPoints = data.user.points;
         this.currentStreak = data.user.streak;
+        this.levelProgress = data.progressToNextLevel;
+        this.validReports = data.user.valid_reports;
+        this.recordStreak = Math.max(this.currentStreak, 12); 
+
+        if (this.user) {
+          const updatedUser = { ...this.user, points: data.user.points, streak: data.user.streak, level: data.user.level, collection_schedule: data.user.collection_schedule };
+          this.auth.updateUser(updatedUser);
+          this.user = updatedUser;
+        }
+        
+        if (data.user.collection_schedule) {
+          this.collectionSchedule = data.user.collection_schedule;
+          this.updateStatus();
+        }
       },
       error: () => {}
     });
   }
 
-  async registerTrashCollection() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          this.gamification.registerCollection({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          }).subscribe({
-            next: (response) => {
-              this.showToast(`+${response.pointsEarned} puntos por sacar la basura!`, 'success');
-              this.currentPoints = response.newTotalPoints;
-              this.currentStreak = response.newStreak;
-              this.user = this.auth.getCurrentUser();
-              if (this.user) {
-                this.user.points = response.newTotalPoints;
-                this.user.streak = response.newStreak;
-                this.user.level = response.newLevel;
-                this.auth.updateUser(this.user);
-              }
-            },
-            error: (err) => {
-              this.showToast('Error al registrar', 'danger');
-            }
-          });
-        },
-        (error) => {
-          this.gamification.registerCollection().subscribe({
-            next: (response) => {
-              this.showToast(`+${response.pointsEarned} puntos por sacar la basura!`, 'success');
-              this.currentPoints = response.newTotalPoints;
-              this.currentStreak = response.newStreak;
-            },
-            error: () => {
-              this.showToast('Error al registrar', 'danger');
-            }
-          });
-        }
-      );
+  startStatusTimer() {
+    setInterval(() => {
+      this.updateStatus();
+      this.loadActiveFleet();
+    }, 30000);
+  }
+
+  updateStatus() {
+    if (!this.collectionSchedule || this.collectionSchedule.length === 0) {
+      this.isTimeToTakeTrash = false;
+      this.nextCollectionTime = 'No configurado';
+      this.estimatedMinutes = 0;
+      this.estimatedMeters = 0;
+      return;
+    }
+
+    const now = new Date();
+    const daysWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const todayName = daysWeek[now.getDay()];
+    const todaySchedule = this.collectionSchedule.find((s: any) => s.day === todayName);
+
+    if (todaySchedule) {
+      this.nextCollectionTime = todaySchedule.time;
+      const [hours, minutes] = todaySchedule.time.split(':').map(Number);
+      const scheduleDate = new Date();
+      scheduleDate.setHours(hours, minutes, 0);
+
+      const diffMs = scheduleDate.getTime() - now.getTime();
+      const diffMins = diffMs / 60000;
+
+      this.isTimeToTakeTrash = diffMins > 0 && diffMins <= 60;
+
+      // Lógica de Seguimiento: Solo si hay vehículos activos hoy
+      if (this.activeVehicles.length > 0 && diffMins > 0 && diffMins < 60) {
+        // Simulamos el ETA basado en el vehículo más cercano asignado
+        this.estimatedMinutes = Math.max(Math.floor(diffMins * 0.8), 3);
+        this.estimatedMeters = this.estimatedMinutes * 110;
+      } else {
+        this.estimatedMinutes = 0;
+        this.estimatedMeters = 0;
+      }
     } else {
-      this.gamification.registerCollection().subscribe({
-        next: (response) => {
-          this.showToast(`+${response.pointsEarned} puntos por sacar la basura!`, 'success');
-          this.currentPoints = response.newTotalPoints;
-          this.currentStreak = response.newStreak;
-        },
-        error: () => {
-          this.showToast('Error al registrar', 'danger');
-        }
-      });
+      this.isTimeToTakeTrash = false;
+      this.nextCollectionTime = 'Próxima recolección pronto';
+      this.estimatedMinutes = 0;
+      this.estimatedMeters = 0;
     }
   }
 
-  async showToast(message: string, color: string) {
-    const toast = await this.toastCtrl.create({
-      message,
-      duration: 3000,
-      color: color === 'success' ? 'success' : 'danger',
-      position: 'top'
+  async openScheduleConfig() {
+    const modal = await this.modalCtrl.create({ component: ScheduleModalComponent, componentProps: { currentSchedule: this.collectionSchedule } });
+    await modal.present();
+    const { data } = await modal.onWillDismiss();
+    if (data) this.saveSchedule(data);
+  }
+
+  saveSchedule(newSchedule: any[]) {
+    if (!this.user) return;
+    this.http.patch(`${this.apiUrl}/users/${this.user.id}`, { collection_schedule: newSchedule }).subscribe({
+      next: () => { this.showToast('Horario actualizado', 'success'); this.refreshUserData(); },
+      error: () => this.showToast('Error al guardar', 'danger')
     });
+  }
+
+  async showToast(message: string, color: string) {
+    const toast = await this.toastCtrl.create({ message, duration: 3000, color: color === 'success' ? 'success' : 'danger', position: 'top' });
     await toast.present();
   }
 
@@ -118,30 +165,14 @@ export class HomePage implements OnInit {
   }
 
   getLevelTitle(): string {
-    if (!this.user) return 'Novato';
-    const level = this.user.level || 1;
-    if (level >= 5) return 'Master';
+    const level = this.user?.level || 1;
+    if (level >= 5) return 'Master del Aseo';
     if (level >= 4) return 'Experto';
     if (level >= 3) return 'Avanzado';
     if (level >= 2) return 'Intermedio';
     return 'Novato';
   }
 
-  getProgressToNextLevel(): number {
-    if (!this.user) return 0;
-    const points = this.user.points || 0;
-    const currentLevel = this.user.level || 1;
-    const pointsForCurrentLevel = (currentLevel - 1) * 100;
-    const pointsForNextLevel = currentLevel * 100;
-    const progress = ((points - pointsForCurrentLevel) / (pointsForNextLevel - pointsForCurrentLevel)) * 100;
-    return Math.min(Math.max(progress, 0), 100);
-  }
-
-  goToProfile(): void {
-    this.router.navigate(['/tabs/profile']);
-  }
-
-  goToNotifications(): void {
-    // Would navigate to notifications
-  }
+  goToProfile(): void { this.router.navigate(['/tabs/profile']); }
+  goToNotifications(): void {}
 }

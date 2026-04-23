@@ -2,6 +2,24 @@ import { Request, Response } from 'express';
 import { pool } from '../../config/db';
 
 /** GET /api/fleet  – Lista todos los vehículos con filtros opcionales */
+export const getActiveVehicles = async (req: Request, res: Response) => {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const result = await pool.query(
+      `SELECT v.*, r.name as route_name, r.zone, ra.shift, ra.status as assignment_status
+       FROM vehicles v
+       JOIN route_assignments ra ON v.id = ra.vehicle_id
+       JOIN routes r ON ra.route_id = r.id
+       WHERE ra.assigned_date = $1 AND ra.status != 'cancelled'`,
+      [today]
+    );
+    res.json({ data: result.rows });
+  } catch (err) {
+    console.error('getActiveVehicles error:', err);
+    res.status(500).json({ message: 'Error del servidor' });
+  }
+};
+
 export const getVehicles = async (req: Request, res: Response) => {
   try {
     const { status, type, search } = req.query;

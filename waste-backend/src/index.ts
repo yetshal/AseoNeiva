@@ -12,7 +12,7 @@ import { getUsers, getUserById, getUserStats, updateUserStatus, createUser, upda
 
 // Nuevos módulos
 import { getSummary } from './modules/summary/summary.controller';
-import { getVehicles, getVehicleById, createVehicle, updateVehicle, deleteVehicle, updateVehicleLocation, getNearbyReports, validateReport as validateVehicleReport } from './modules/fleet/fleet.controller';
+import { getVehicles, getVehicleById, createVehicle, updateVehicle, deleteVehicle, updateVehicleLocation, getNearbyReports, validateReport as validateVehicleReport, getActiveVehicles } from './modules/fleet/fleet.controller';
 import { getStaff, getStaffById, createStaff, updateStaff, changeStaffPassword, deleteStaff } from './modules/staff/staff.controller';
 import { getReportsAnalysis, getFleetAnalysis, getUsersAnalysis } from './modules/analysis/analysis.controller';
 import { getRoutes, getRouteById, createRoute, updateRoute, deleteRoute, getAssignments, createAssignment, updateAssignment, deleteAssignment } from './modules/routes/routes.controller';
@@ -25,7 +25,7 @@ import { verifyCitizenToken } from './middleware/citizen-auth';
 import { getLevels, getUserGamification, registerTrashCollection, getLeaderboard, validateReport, updateUserType, getUserCollections } from './modules/gamification/gamification.controller';
 
 // Reportes
-import { getAllReports, getReportById, updateReportStatus, validateReportAndAwardPoints } from './modules/reports/reports.controller';
+import { getAllReports, getReportById, updateReportStatus, validateReportAndAwardPoints, createReport, deleteReport, getMyReports } from './modules/reports/reports.controller';
 
 dotenv.config();
 const app = express();
@@ -69,6 +69,7 @@ app.patch('/api/users/:id',       verifyToken, updateUser);
 app.get('/api/summary', verifyToken, getSummary);
 
 // ── Flota (vehículos) ────────────────────────────────────────
+app.get('/api/fleet/active',             getActiveVehicles);
 app.get('/api/fleet',                    verifyToken, getVehicles);
 app.post('/api/fleet',                   verifyToken, createVehicle);
 app.get('/api/fleet/:id',                verifyToken, getVehicleById);
@@ -111,7 +112,10 @@ app.get('/api/gamification/collections', verifyCitizenToken, getUserCollections)
 
 // Reportes ────────────────────────────────────────────────────────
 app.get('/api/reports', verifyToken, getAllReports);
+app.get('/api/reports/user', verifyCitizenToken, getMyReports);
+app.post('/api/reports', verifyCitizenToken, createReport);
 app.get('/api/reports/:id', verifyToken, getReportById);
+app.delete('/api/reports/:id', verifyCitizenToken, deleteReport);
 app.patch('/api/reports/:id/status', verifyToken, updateReportStatus);
 app.patch('/api/reports/:reportId/validate', verifyToken, validateReportAndAwardPoints);
 
