@@ -80,113 +80,183 @@ export class ReportDetailModal {
         <ion-title mode="ios">Reportes Ciudadanos</ion-title>
       </ion-toolbar>
       <ion-toolbar color="white">
-        <ion-segment [(ngModel)]="activeSegment" mode="ios" (ionChange)="segmentChanged()">
+        <ion-segment [(ngModel)]="activeSegment" mode="ios" (ionChange)="segmentChanged()" class="custom-segment">
           <ion-segment-button value="new">
-            <ion-label>Nuevo Reporte</ion-label>
+            <ion-label>Nuevo</ion-label>
           </ion-segment-button>
           <ion-segment-button value="history">
-            <ion-label>Mis Reportes</ion-label>
+            <ion-label>Historial</ion-label>
           </ion-segment-button>
         </ion-segment>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content [fullscreen]="true" class="report-content">
-      <div *ngIf="activeSegment === 'new'" class="animate-fade">
-        <div class="photo-card" (click)="takePhoto()" [class.has-photo]="photoCaptured">
+    <ion-content [fullscreen]="true" class="report-content ion-padding">
+      
+      <!-- New Report Flow -->
+      <div *ngIf="activeSegment === 'new'" class="animate-up">
+        
+        <div class="photo-capture-card shadow-premium" (click)="takePhoto()">
           @if (photoCaptured) {
-            <img [src]="photoCaptured" alt="Reporte" class="img-full">
-            <div class="badge-change">
-              <ion-icon name="camera-reverse-outline"></ion-icon>
+            <img [src]="photoCaptured" class="captured-img">
+            <div class="photo-overlay">
+              <ion-icon name="camera-reverse"></ion-icon>
               <span>Cambiar Foto</span>
             </div>
           } @else {
-            <div class="empty-photo">
-              <div class="icon-circle">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:32px">
-                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
-                </svg>
+            <div class="empty-state">
+              <div class="icon-orbit gradient-primary">
+                <ion-icon name="camera"></ion-icon>
               </div>
               <h3>Capturar Evidencia</h3>
-              <p>Toma una foto real del problema</p>
+              <p>Muestra el problema detectado</p>
             </div>
           }
         </div>
 
-        <div class="section-card">
-          <div class="card-header">
-            <ion-icon name="location-outline" color="primary"></ion-icon>
-            <ion-label>Ubicación</ion-label>
-            <ion-button fill="clear" size="small" (click)="getCurrentLocation()">
-              <ion-icon name="locate-outline"></ion-icon>
-            </ion-button>
+        <div class="form-card shadow-premium">
+          <div class="field-group">
+            <label class="field-label">Ubicación</label>
+            <div class="map-wrapper shadow-premium">
+              <div #reportMap class="mini-map"></div>
+              <button class="map-recenter" (click)="getCurrentLocation()">
+                <ion-icon name="locate"></ion-icon>
+              </button>
+            </div>
           </div>
-          <div #reportMap class="map-view"></div>
-        </div>
 
-        <div class="section-card">
-          <div class="input-item">
-            <ion-label position="stacked">Tipo de Incidente</ion-label>
-            <ion-select [(ngModel)]="selectedType" placeholder="Selecciona el problema" interface="action-sheet" class="custom-select">
-              @for (type of problemTypes; track type) {
-                <ion-select-option [value]="type">{{ type }}</ion-select-option>
-              }
-            </ion-select>
+          <div class="field-group">
+            <label class="field-label">Tipo de problema</label>
+            <div class="select-modern">
+              <select [(ngModel)]="selectedType">
+                <option [ngValue]="null" disabled>Selecciona una opción</option>
+                @for (type of problemTypes; track type) {
+                  <option [value]="type">{{ type }}</option>
+                }
+              </select>
+              <ion-icon name="chevron-down-outline" class="select-chevron"></ion-icon>
+            </div>
           </div>
-          <div class="input-item">
-            <ion-label position="stacked">Descripción</ion-label>
-            <textarea [(ngModel)]="description" placeholder="Escribe detalles aquí..." rows="4"></textarea>
-          </div>
-        </div>
 
-        <div class="ion-padding">
-          <ion-button expand="block" mode="ios" (click)="submitReport()" [disabled]="!canSubmit() || submitting" class="btn-main">
-            {{ submitting ? 'Enviando...' : 'Enviar Reporte' }}
-          </ion-button>
+          <div class="field-group">
+            <label class="field-label">Detalles del reporte</label>
+            <textarea [(ngModel)]="description" rows="3" placeholder="¿Qué está pasando?"></textarea>
+          </div>
+
+          <button class="submit-btn gradient-primary shadow-premium" (click)="submitReport()" [disabled]="!canSubmit() || submitting">
+            <span *ngIf="!submitting">Enviar Reporte</span>
+            <ion-spinner name="crescent" *ngIf="submitting"></ion-spinner>
+          </button>
         </div>
       </div>
 
-      <div *ngIf="activeSegment === 'history'" class="animate-fade ion-padding">
+      <!-- History Flow -->
+      <div *ngIf="activeSegment === 'history'" class="history-list animate-up">
         @for (report of reports; track report.id) {
-          <div class="history-card" (click)="showDetail(report)">
-            <div class="history-thumb">
-              <img [src]="report.photo_url" alt="thumb">
+          <div class="history-card shadow-premium" (click)="showDetail(report)">
+            <div class="card-img">
+              <img [src]="report.photo_url">
+              <div class="status-pill" [class]="report.status">
+                {{ report.status === 'pending' ? 'Pendiente' : 
+                   report.status === 'resolved' ? 'Resuelto' : 'Revisando' }}
+              </div>
             </div>
-            <div class="history-data">
-              <span class="type-text">{{ report.type }}</span>
-              <span class="date-text">{{ report.created_at | date:'dd/MM/yyyy' }}</span>
-              <div class="status-badge" [class]="report.status">{{ getStatusLabel(report.status || '') }}</div>
+            <div class="card-body">
+              <div class="card-meta">
+                <span class="meta-date">{{ report.created_at | date:'dd MMM, h:mm a' }}</span>
+                <ion-button fill="clear" color="danger" (click)="deleteReport(report.id!); $event.stopPropagation()" size="small" class="btn-delete">
+                  <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+                </ion-button>
+              </div>
+              <h4 class="card-title">{{ report.type }}</h4>
+              <p class="card-desc">{{ report.description }}</p>
             </div>
-            <ion-button fill="clear" color="danger" (click)="deleteReport(report.id!); $event.stopPropagation()">
-              <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
-            </ion-button>
           </div>
         } @empty {
-          <div class="empty-history">
-            <ion-icon name="document-text-outline"></ion-icon>
-            <p>No has realizado reportes</p>
+          <div class="empty-history-state">
+            <div class="empty-icon">📂</div>
+            <p>Tu historial está vacío</p>
           </div>
         }
       </div>
     </ion-content>
   `,
   styles: [`
-    .report-content { --background: #f4f6f9; }
-    .animate-fade { animation: fadeIn 0.3s ease-in; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .photo-card { margin: 16px; height: 200px; border-radius: 20px; background: white; border: 2px dashed #d1d5db; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; transition: all 0.2s; &.has-photo { border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); } }
-    .empty-photo { text-align: center; padding: 20px; .icon-circle { width: 50px; height: 50px; background: #f3f4f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; color: #6b7280; } h3 { margin: 0; font-size: 15px; font-weight: 700; color: #374151; } p { margin: 4px 0 0; font-size: 11px; color: #9ca3af; } }
-    .img-full { width: 100%; height: 100%; object-fit: cover; }
-    .badge-change { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 4px 10px; border-radius: 20px; display: flex; align-items: center; gap: 4px; font-size: 11px; }
-    .section-card { background: white; margin: 0 16px 16px; border-radius: 16px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); .card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; ion-label { font-weight: 700; color: #374151; flex: 1; } } }
-    .map-view { height: 150px; border-radius: 12px; overflow: hidden; }
-    .input-item { margin-bottom: 16px; ion-label { font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 8px; display: block; } }
-    .custom-select { --background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; }
-    textarea { width: 100%; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; font-family: inherit; font-size: 14px; outline: none; }
-    .btn-main { --border-radius: 12px; height: 50px; font-weight: 700; }
-    .history-card { background: white; border-radius: 14px; padding: 10px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); .history-thumb { width: 60px; height: 60px; border-radius: 10px; overflow: hidden; img { width: 100%; height: 100%; object-fit: cover; } } .history-data { flex: 1; display: flex; flex-direction: column; gap: 2px; } .type-text { font-size: 14px; font-weight: 700; color: #1f2937; } .date-text { font-size: 11px; color: #6b7280; } }
-    .status-badge { font-size: 9px; font-weight: 800; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; width: fit-content; &.pending { background: #fef3c7; color: #92400e; } &.resolved { background: #d1fae5; color: #065f46; } }
-    .empty-history { text-align: center; padding: 40px; color: #9ca3af; ion-icon { font-size: 40px; } }
+    .report-content { --background: var(--app-bg); }
+    .custom-segment {
+      padding: 8px 16px;
+      --background: #f1f5f9;
+      border-radius: 16px;
+      margin: 10px 16px;
+      
+      ion-segment-button {
+        --color: #64748b;
+        --color-checked: #1D9E75;
+        --indicator-color: white;
+        --border-radius: 12px;
+        margin: 2px;
+        min-height: 40px;
+        
+        ion-label {
+          font-weight: 700;
+          font-size: 14px;
+          letter-spacing: 0.3px;
+        }
+      }
+    }
+
+    .photo-capture-card {
+      height: 200px; background: white; border-radius: 24px; overflow: hidden;
+      margin-bottom: 24px; position: relative; display: flex; align-items: center; justify-content: center;
+      .captured-img { width: 100%; height: 100%; object-fit: cover; }
+      .photo-overlay {
+        position: absolute; bottom: 12px; right: 12px; background: rgba(255,255,255,0.9);
+        padding: 8px 14px; border-radius: 12px; color: #1D9E75; font-weight: 700;
+        display: flex; align-items: center; gap: 8px; font-size: 13px;
+      }
+      .empty-state {
+        text-align: center;
+        .icon-orbit { width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; }
+        h3 { font-size: 16px; font-weight: 700; margin: 0; color: var(--app-text-main); }
+        p { font-size: 13px; color: var(--app-text-muted); margin: 4px 0 0; }
+      }
+    }
+
+    .form-card {
+      background: white; border-radius: 24px; padding: 24px;
+      .field-group { margin-bottom: 24px; .field-label { font-size: 12px; font-weight: 800; text-transform: uppercase; color: #94a3b8; display: block; margin-bottom: 10px; padding-left: 4px; } }
+    }
+
+    .map-wrapper {
+      height: 140px; border-radius: 20px; overflow: hidden; position: relative;
+      .mini-map { height: 100%; width: 100%; }
+      .map-recenter { 
+        position: absolute; bottom: 12px; right: 12px; z-index: 9999; 
+        width: 36px; height: 36px; background: white; border-radius: 10px; 
+        border: none; color: #1D9E75; font-size: 20px; 
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
+        display: flex; align-items: center; justify-content: center;
+      }
+    }
+
+    textarea, .select-modern { width: 100%; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 16px; padding: 14px 16px; font-size: 15px; color: var(--app-text-main); font-weight: 500; &:focus { border-color: #1D9E75; outline: none; } }
+    .select-modern { position: relative; padding: 0; select { width: 100%; background: transparent; border: none; padding: 14px 16px; appearance: none; font-weight: 600; color: var(--app-text-main); } .select-chevron { position: absolute; right: 16px; top: 15px; color: #94a3b8; pointer-events: none; } }
+
+    .submit-btn { width: 100%; height: 56px; border: none; border-radius: 18px; color: white; font-size: 16px; font-weight: 800; &:disabled { opacity: 0.7; } }
+
+    .history-card {
+      background: white; border-radius: 24px; overflow: hidden; margin-bottom: 20px; display: flex; flex-direction: column;
+      .card-img { height: 160px; position: relative; img { width: 100%; height: 100%; object-fit: cover; } .status-pill { position: absolute; top: 12px; left: 12px; padding: 6px 14px; border-radius: 12px; font-size: 10px; font-weight: 800; text-transform: uppercase; color: white; &.pending { background: #475569; } &.resolved { background: #1D9E75; } } }
+      .card-body { padding: 20px; }
+      .card-meta { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 600; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; }
+      .card-title { font-size: 17px; font-weight: 800; color: var(--app-text-main); margin: 0 0 8px; }
+      .card-desc { font-size: 13px; color: var(--app-text-muted); line-height: 1.5; margin: 0; }
+      .btn-delete { margin: -10px -10px -10px 0; --padding-start: 8px; --padding-end: 8px; }
+    }
+
+    .empty-history-state { text-align: center; padding: 60px 20px; color: #94a3b8; .empty-icon { font-size: 48px; margin-bottom: 12px; } p { font-size: 15px; font-weight: 600; } }
+    .animate-up { animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   `]
 })
 export class ReportPage implements OnInit, AfterViewInit {
@@ -224,9 +294,27 @@ export class ReportPage implements OnInit, AfterViewInit {
 
   private initMap() {
     if (this.map) return;
+    
+    // Crear un icono personalizado elegante (SVG) para evitar el error de imagen rota
+    const customIcon = L.divIcon({
+      className: 'custom-div-icon',
+      html: `
+        <div style="background-color: #1D9E75; width: 32px; height: 32px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+          <div style="width: 10px; height: 10px; background: white; border-radius: 50%; transform: rotate(45deg);"></div>
+        </div>
+      `,
+      iconSize: [32, 32],
+      iconAnchor: [16, 32]
+    });
+
     this.map = L.map(this.mapContainer.nativeElement, { center: [this.latitude, this.longitude], zoom: 16, zoomControl: false });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.map);
-    this.marker = L.marker([this.latitude, this.longitude], { draggable: true }).addTo(this.map);
+    
+    this.marker = L.marker([this.latitude, this.longitude], { 
+      draggable: true,
+      icon: customIcon 
+    }).addTo(this.map);
+
     this.marker.on('dragend', () => { const pos = this.marker!.getLatLng(); this.latitude = pos.lat; this.longitude = pos.lng; });
     
     // Forzar redibujado para evitar que el mapa aparezca gris o cortado

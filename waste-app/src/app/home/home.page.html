@@ -2,22 +2,19 @@
   <ion-toolbar>
     <div class="header-content">
       <div class="user-info">
-        <span class="greeting">Hola,</span>
-        <span class="user-name">{{ user?.name || 'Usuario' }}</span>
-        <div class="level-badge" *ngIf="user">
-          <span class="level-icon">LVL {{ user.level || 1 }}</span>
-          <span class="level-name">{{ getLevelTitle() }}</span>
-        </div>
+        <span class="greeting">¡Hola, bienvenido!</span>
+        <h1 class="user-name">{{ user?.name || 'Usuario' }}</h1>
       </div>
       <div class="header-actions">
         <button class="icon-btn" (click)="goToNotifications()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
           <span class="notification-dot"></span>
         </button>
-        <button class="icon-btn" (click)="goToProfile()">
+        <button class="profile-trigger" (click)="goToProfile()">
+          <div class="avatar-glow"></div>
           <div class="avatar">{{ getUserInitials() }}</div>
         </button>
       </div>
@@ -26,157 +23,128 @@
 </ion-header>
 
 <ion-content [fullscreen]="true" class="home-content">
-  <!-- Address Section -->
-  <div class="address-section">
-    <div class="address-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-        <circle cx="12" cy="10" r="3"/>
-      </svg>
-    </div>
-    <div class="address-text">
-      <span class="address-label">Tu ubicación</span>
-      <span class="address-value">{{ user?.address || 'Cargando ubicación...' }}</span>
-    </div>
-  </div>
-
-  <!-- Level Progress -->
-  <div class="level-progress-section">
-    <div class="progress-header">
-      <span>Progreso al siguiente nivel</span>
-      <span>{{ levelProgress }}%</span>
-    </div>
-    <div class="progress-bar-container">
-      <div class="progress-bar-fill" [style.width.%]="levelProgress"></div>
-    </div>
-  </div>
-
-  <!-- ETA Card -->
-  <div class="eta-card" [class.inactive]="estimatedMinutes === 0">
-    @if (estimatedMinutes > 0) {
-      <div class="eta-header">
-        <span class="eta-title">Seguimiento en vivo</span>
-        <span class="eta-badge active">En camino</span>
-      </div>
-      <div class="eta-body">
-        <div class="eta-item">
-          <span class="eta-value">{{ estimatedMinutes }}</span>
-          <span class="eta-unit">min</span>
-        </div>
-        <div class="eta-divider"></div>
-        <div class="eta-item">
-          <span class="eta-value">{{ estimatedMeters }}</span>
-          <span class="eta-unit">m</span>
-        </div>
-      </div>
-    } @else {
-      <div class="eta-empty-state">
-        <div class="empty-icon-pulse">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-          </svg>
-        </div>
-        <div class="empty-text">
-          <span class="empty-title">Pausa en el servicio</span>
-          <p class="empty-desc">Nuestras unidades están en recarga o cambio de turno. ¡Regresamos pronto para mantener a Neiva reluciente!</p>
-        </div>
-      </div>
-    }
-    <div class="eta-footer">
-      <span>Próxima recolección: <strong>{{ nextCollectionTime }}</strong></span>
-    </div>
-  </div>
-
-  <!-- Time to Take Trash - SOLO SI ES ACTIVO -->
-  @if (isTimeToTakeTrash) {
-    <div class="trash-alert active">
-      <div class="trash-icon">
+  <!-- Status Dashboard -->
+  <div class="main-dashboard ion-padding">
+    
+    <!-- Address Section -->
+    <div class="location-bar" (click)="getCurrentLocation()">
+      <div class="loc-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
         </svg>
       </div>
-      <div class="trash-text">
-        <span class="trash-title">¡Es hora de sacar la basura!</span>
-        <span class="trash-subtitle">El camión pasará pronto por tu zona</span>
+      <div class="loc-content">
+        <span class="loc-label">Servicio en</span>
+        <span class="loc-value">{{ user?.address || 'Detectando ubicación...' }}</span>
       </div>
-    </div>
-  }
-
-  <!-- Schedule Section -->
-  <div class="schedule-section">
-    <div class="section-header">
-      <h2 class="section-title">Horario de recolección</h2>
-      <button class="btn-config" (click)="openScheduleConfig()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
-      </button>
+      <ion-icon name="chevron-forward-outline" class="loc-chevron"></ion-icon>
     </div>
 
-    @if (collectionSchedule.length > 0) {
-      <div class="schedule-list">
-        @for (schedule of collectionSchedule; track schedule.day) {
-          <div class="schedule-item">
-            <div class="schedule-day">{{ schedule.day }}</div>
-            <div class="schedule-time">{{ schedule.time }}</div>
-            <div class="schedule-zone">Tu ubicación</div>
+    <!-- ETA Card -->
+    <div class="premium-card eta-card" [class.inactive]="estimatedMinutes === 0">
+      <div class="card-bg-decoration"></div>
+      
+      @if (estimatedMinutes > 0) {
+        <div class="eta-header">
+          <div class="eta-title-group">
+            <span class="eta-title">Rastreo en tiempo real</span>
+            <span class="eta-subtitle">Unidad de recolección cercana</span>
           </div>
-        }
-      </div>
-    } @else {
-      <div class="empty-schedule" (click)="openScheduleConfig()">
-        <div class="empty-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/>
-            <line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
+          <div class="live-indicator">
+            <span class="pulse-dot"></span>
+            EN VIVO
+          </div>
         </div>
-        <p>No tienes horarios configurados</p>
-        <button class="btn-setup">Configurar ahora</button>
+        
+        <div class="eta-body">
+          <div class="eta-stat">
+            <span class="stat-val">{{ estimatedMinutes }}</span>
+            <span class="stat-unit">minutos</span>
+          </div>
+          <div class="eta-visual-divider"></div>
+          <div class="eta-stat">
+            <span class="stat-val">{{ estimatedMeters }}</span>
+            <span class="stat-unit">metros</span>
+          </div>
+        </div>
+      } @else {
+        <div class="eta-empty-state">
+          <div class="empty-visual">
+            <div class="icon-orbit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+              </svg>
+            </div>
+          </div>
+          <div class="empty-info">
+            <h2 class="empty-title">Estado del Servicio</h2>
+            <p class="empty-desc">Nuestras unidades están en recarga o cambio de turno. Regresamos en breve para servirte.</p>
+          </div>
+        </div>
+      }
+      
+      <div class="eta-footer">
+        <ion-icon name="calendar-clear-outline"></ion-icon>
+        <span>Próxima visita: <strong>{{ nextCollectionTime }}</strong></span>
       </div>
-    }
-  </div>
+    </div>
 
-  <!-- Gamification Section -->
-  <div class="gamification-section">
-    <div class="gamification-card points">
-      <div class="g-icon">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-        </svg>
+    <!-- Gamification Quick Stats -->
+    <div class="quick-stats-grid">
+      <div class="q-stat-card" (click)="goToProfile()">
+        <div class="q-icon-box points">⭐</div>
+        <div class="q-data">
+          <span class="q-val">{{ currentPoints }}</span>
+          <span class="q-lab">Puntos</span>
+        </div>
       </div>
-      <div class="g-content">
-        <span class="g-value">{{ currentPoints }}</span>
-        <span class="g-label">Puntos</span>
+      <div class="q-stat-card" (click)="goToProfile()">
+        <div class="q-icon-box streak">🔥</div>
+        <div class="q-data">
+          <span class="q-val">{{ currentStreak }}</span>
+          <span class="q-lab">Racha</span>
+        </div>
+      </div>
+      <div class="q-stat-card" (click)="goToProfile()">
+        <div class="q-icon-box level">🏆</div>
+        <div class="q-data">
+          <span class="q-val">{{ user?.level || 1 }}</span>
+          <span class="q-lab">Nivel</span>
+        </div>
       </div>
     </div>
 
-    <div class="gamification-card streak">
-      <div class="g-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-        </svg>
+    <!-- Collection Schedule -->
+    <div class="section-container">
+      <div class="section-header">
+        <h2 class="section-title">Tu Horario de Recolección</h2>
+        <button class="action-link" (click)="openScheduleConfig()">Configurar</button>
       </div>
-      <div class="g-content">
-        <span class="g-value">{{ currentStreak }}</span>
-        <span class="g-label">Días racha</span>
-      </div>
+
+      @if (collectionSchedule.length > 0) {
+        <div class="schedule-modern-list">
+          @for (schedule of collectionSchedule; track schedule.day) {
+            <div class="schedule-row">
+              <div class="day-bubble">{{ schedule.day.substring(0, 3) }}</div>
+              <div class="time-info">
+                <span class="time-val">{{ schedule.time }}</span>
+                <span class="zone-tag">Zona Residencial</span>
+              </div>
+              <div class="status-icon">
+                <ion-icon name="checkmark-circle" color="primary"></ion-icon>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-placeholder" (click)="openScheduleConfig()">
+          <div class="placeholder-icon">📅</div>
+          <p>No has configurado tus horarios</p>
+          <button class="setup-btn">Configurar ahora</button>
+        </div>
+      }
     </div>
 
-    <div class="gamification-card record">
-      <div class="g-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="8" r="7"/>
-          <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
-        </svg>
-      </div>
-      <div class="g-content">
-        <span class="g-value">{{ recordStreak }}</span>
-        <span class="g-label">Días récord</span>
-      </div>
-    </div>
   </div>
 </ion-content>
