@@ -1,6 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import './config/db';
 import { pool } from './config/db';
 
@@ -27,8 +30,24 @@ import { getLevels, getUserGamification, registerTrashCollection, getLeaderboard
 // Reportes
 import { getAllReports, getReportById, updateReportStatus, validateReportAndAwardPoints, createReport, deleteReport, getMyReports } from './modules/reports/reports.controller';
 
+// Middleware de subida
+import { upload, optimizeImage } from './middleware/upload.middleware';
+
 dotenv.config();
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST", "PATCH"]
+  }
+});
+
+// Compartir io con los controladores a través de la req
+app.use((req: any, res, next) => {
+  req.io = io;
+  next();
+});
 
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
@@ -41,6 +60,23 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Servir archivos estáticos (Subidas)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// ── WebSocket Logic ──────────────────────────────────────────
+io.on('connection', (socket) => {
+  console.log('Cliente conectado:', socket.id);
+  
+  socket.on('join-room', (room) => {
+    socket.join(room);
+    console.log(`Cliente ${socket.id} se unió a ${room}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Cliente desconectado:', socket.id);
+  });
+});
 
 // ── Auth ─────────────────────────────────────────────────────
 app.post('/api/auth/login', login);
@@ -113,11 +149,19 @@ app.get('/api/gamification/collections', verifyCitizenToken, getUserCollections)
 // Reportes ────────────────────────────────────────────────────────
 app.get('/api/reports', verifyToken, getAllReports);
 app.get('/api/reports/user', verifyCitizenToken, getMyReports);
-app.post('/api/reports', verifyCitizenToken, createReport);
+
+// AHORA: Soporta tanto JSON (Base64) como multipart/form-data (File)
+app.post('/api/reports', verifyCitizenToken, upload.single('photo'), optimizeImage, createReport);
+
 app.get('/api/reports/:id', verifyToken, getReportById);
-app.delete('/api/reports/:id', verifyCitizenToken, deleteReport);
+
+// Middleware de propiedad añadido aquí
+import { checkOwnership } from './middleware/ownership';
+app.delete('/api/reports/:id', verifyCitizenToken, checkOwnership('reports'), deleteReport);
+
 app.patch('/api/reports/:id/status', verifyToken, updateReportStatus);
 app.patch('/api/reports/:reportId/validate', verifyToken, validateReportAndAwardPoints);
+
 
 // Report validation (dashboard)
 app.patch('/api/gamification/reports/:reportId/validate', verifyToken, validateReport);
@@ -125,16 +169,19 @@ app.patch('/api/gamification/reports/:reportId/validate', verifyToken, validateR
 // User type management
 app.patch('/api/users/:userId/type', verifyToken, updateUserType);
 
-app.listen(process.env.PORT, async () => {
+const PORT = process.env.PORT || 3000;
+httpServer.listen(PORT, async () => {
   try {
+    // Mantenimiento de FK
     await pool.query(`
       ALTER TABLE report_validations DROP CONSTRAINT IF EXISTS report_validations_validated_by_fkey;
       ALTER TABLE report_validations ALTER COLUMN validated_by DROP NOT NULL;
     `);
-    console.log('✅ FK de report_validations eliminada');
+    console.log('✅ Base de datos verificada');
   } catch (e: any) {
-    console.log('⚠️ Error al modificar FK (puede que ya esté eliminada):', e.message);
+    console.log('⚠️ Aviso en inicialización de DB:', e.message);
   }
   
-  console.log(`🚀 Servidor en puerto ${process.env.PORT}`)
+  console.log(`🚀 Servidor en puerto ${PORT}`)
 });
+

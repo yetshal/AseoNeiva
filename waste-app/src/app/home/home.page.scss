@@ -94,7 +94,58 @@
 .eta-card {
   background: linear-gradient(135deg, #1D9E75 0%, #0F6E56 100%);
   border-radius: 16px; padding: 20px; margin: 0 16px 16px; color: white;
+  transition: all 0.5s ease;
+
+  &.inactive {
+    background: linear-gradient(135deg, #475569 0%, #1e293b 100%);
+  }
 }
+
+.eta-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 10px 0;
+  gap: 12px;
+
+  .empty-icon-pulse {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 2s infinite;
+
+    svg { width: 24px; height: 24px; color: rgba(255, 255, 255, 0.8); }
+  }
+
+  .empty-text {
+    .empty-title {
+      display: block;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      letter-spacing: 0.5px;
+    }
+    .empty-desc {
+      font-size: 12px;
+      opacity: 0.8;
+      margin: 0;
+      line-height: 1.4;
+      max-width: 240px;
+    }
+  }
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}
+
 .eta-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .eta-title { font-size: 15px; font-weight: 500; }
 .eta-badge {

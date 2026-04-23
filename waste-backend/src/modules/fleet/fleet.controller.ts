@@ -177,7 +177,7 @@ export const deleteVehicle = async (req: Request, res: Response) => {
 };
 
 /** PATCH /api/fleet/:id/location  – Actualizar posición GPS (usado por Socket.io) */
-export const updateVehicleLocation = async (req: Request, res: Response) => {
+export const updateVehicleLocation = async (req: any, res: Response) => {
   try {
     const { id } = req.params;
     const { latitude, longitude } = req.body;
@@ -188,7 +188,10 @@ export const updateVehicleLocation = async (req: Request, res: Response) => {
 
     const result = await pool.query(
       `UPDATE vehicles
-       SET latitude = $1, longitude = $2, last_seen_at = NOW(), updated_at = NOW()
+       SET latitude = $1, 
+           longitude = $2, 
+           last_seen_at = NOW(), 
+           updated_at = NOW()
        WHERE id = $3
        RETURNING id, plate, latitude, longitude, last_seen_at`,
       [latitude, longitude, id]
@@ -196,29 +199,60 @@ export const updateVehicleLocation = async (req: Request, res: Response) => {
 
     if (!result.rows[0]) return res.status(404).json({ message: 'Vehículo no encontrado' });
 
-    res.json({ vehicle: result.rows[0] });
+    const vehicle = result.rows[0];
+
+    // EMITIR VÍA WEBSOCKET
+    if (req.io) {
+      // Emitir a una sala específica si el vehículo está en una ruta
+      const routeRes = await pool.query(
+        'SELECT route_id FROM route_assignments WHERE vehicle_id = $1 AND assigned_date = CURRENT_DATE AND status = \'in_progress\'',
+        [id]
+      );
+      
+      const eventData = {
+        vehicleId: vehicle.id,
+        plate: vehicle.plate,
+        latitude: vehicle.latitude,
+        longitude: vehicle.longitude,
+        timestamp: vehicle.last_seen_at
+      };
+
+      if (routeRes.rows[0]) {
+        const routeId = routeRes.rows[0].route_id;
+        req.io.to(`route-${routeId}`).emit('vehicle-moved', eventData);
+      }
+      
+      // También emitir al canal general para el Dashboard
+      req.io.emit('vehicle-moved-all', eventData);
+    }
+
+    res.json({ vehicle });
   } catch (err) {
     console.error('updateVehicleLocation error:', err);
     res.status(500).json({ message: 'Error del servidor' });
   }
 };
 
-/** GET /api/fleet/:id/nearby-reports – Reportes cercanos al vehículo */
+/** GET /api/fleet/:id/nearby-reports – Reportes cercanos al vehículo (FILTRO MANUAL SIN POSTGIS) */
 export const getNearbyReports = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { radius = 500 } = req.query;
+    const { radius = 1000 } = req.query; // Radio en metros (default 1km)
 
-    const vehicleRes = await pool.query(
-      'SELECT latitude, longitude FROM vehicles WHERE id = $1',
-      [id]
-    );
-
+    // 1. Obtener ubicación del vehículo
+    const vehicleRes = await pool.query('SELECT latitude, longitude FROM vehicles WHERE id = $1', [id]);
     if (!vehicleRes.rows[0] || !vehicleRes.rows[0].latitude) {
-      return res.status(400).json({ message: 'El vehículo no tiene ubicación registrada' });
+      return res.json({ data: [] });
     }
 
-    const { latitude, longitude } = vehicleRes.rows[0];
+    const vLat = Number(vehicleRes.rows[0].latitude);
+    const vLng = Number(vehicleRes.rows[0].longitude);
+
+    // 2. Cálculo aproximado de caja delimitadora (Bounding Box)
+    // 1 grado latitud ≈ 111,111 metros
+    // 1 grado longitud ≈ 111,111 * cos(latitud) metros
+    const latDelta = Number(radius) / 111111;
+    const lngDelta = Number(radius) / (111111 * Math.cos(vLat * Math.PI / 180));
 
     const reportsRes = await pool.query(
       `SELECT r.id, r.type, r.description, r.photo_url, r.latitude, r.longitude, 
@@ -228,33 +262,38 @@ export const getNearbyReports = async (req: Request, res: Response) => {
        LEFT JOIN users u ON r.user_id = u.id
        LEFT JOIN report_validations rv ON r.id = rv.report_id
        WHERE r.status IN ('pending', 'reviewing')
-         AND r.latitude IS NOT NULL
-         AND r.longitude IS NOT NULL
-         AND (
-           (6371000 * acos(
-             cos(radians($1)) * cos(radians(r.latitude)) * 
-             cos(radians(r.longitude) - radians($2)) + 
-             sin(radians($1)) * sin(radians(r.latitude))
-           )) <= $3
-         )
+         AND r.latitude BETWEEN $1 AND $2
+         AND r.longitude BETWEEN $3 AND $4
        ORDER BY r.created_at DESC
        LIMIT 20`,
-      [latitude, longitude, radius]
+      [vLat - latDelta, vLat + latDelta, vLng - lngDelta, vLng + lngDelta]
     );
 
-    const reports = reportsRes.rows.map((r: any) => ({
-      id: r.id,
-      type: r.type,
-      description: r.description,
-      photoUrl: r.photo_url,
-      latitude: Number(r.latitude),
-      longitude: Number(r.longitude),
-      status: r.status,
-      createdAt: r.created_at,
-      userName: r.user_name,
-      validated: r.validated,
-      validationNotes: r.validation_notes,
-    }));
+    const reports = reportsRes.rows.map((r: any) => {
+      // Haversine simple para la distancia real en la respuesta
+      const dLat = (Number(r.latitude) - vLat) * Math.PI / 180;
+      const dLon = (Number(r.longitude) - vLng) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(vLat * Math.PI / 180) * Math.cos(Number(r.latitude) * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distance = Math.round(6371000 * c);
+
+      return {
+        id: r.id,
+        type: r.type,
+        description: r.description,
+        photoUrl: r.photo_url,
+        latitude: Number(r.latitude),
+        longitude: Number(r.longitude),
+        status: r.status,
+        createdAt: r.created_at,
+        userName: r.user_name,
+        validated: r.validated,
+        validationNotes: r.validation_notes,
+        distance: distance
+      };
+    });
 
     res.json({ data: reports });
   } catch (err) {
@@ -262,6 +301,7 @@ export const getNearbyReports = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error del servidor' });
   }
 };
+
 
 /** POST /api/fleet/:id/validate-report – Validar reporte y otorgar puntos */
 export const validateReport = async (req: Request, res: Response) => {

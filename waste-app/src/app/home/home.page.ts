@@ -39,6 +39,7 @@ export class HomePage implements OnInit {
   levelProgress = 0;
   validReports = 0;
 
+  userCoords: { lat: number, lng: number } | null = null;
   collectionSchedule: any[] = [];
   activeVehicles: Vehicle[] = [];
 
@@ -46,6 +47,19 @@ export class HomePage implements OnInit {
     this.refreshUserData();
     this.loadActiveFleet();
     this.startStatusTimer();
+    this.getCurrentLocation();
+  }
+
+  getCurrentLocation() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        this.userCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        this.updateStatus();
+      }, () => {
+        // Default a Neiva centro si falla
+        this.userCoords = { lat: 2.9273, lng: -75.2819 };
+      });
+    }
   }
 
   refreshUserData() {
@@ -73,7 +87,7 @@ export class HomePage implements OnInit {
         this.currentStreak = data.user.streak;
         this.levelProgress = data.progressToNextLevel;
         this.validReports = data.user.valid_reports;
-        this.recordStreak = Math.max(this.currentStreak, 12); 
+        this.recordStreak = this.currentStreak; 
 
         if (this.user) {
           const updatedUser = { ...this.user, points: data.user.points, streak: data.user.streak, level: data.user.level, collection_schedule: data.user.collection_schedule };
@@ -94,49 +108,65 @@ export class HomePage implements OnInit {
     setInterval(() => {
       this.updateStatus();
       this.loadActiveFleet();
-    }, 30000);
+    }, 15000); // Reducido a 15s para más fluidez
   }
 
   updateStatus() {
-    if (!this.collectionSchedule || this.collectionSchedule.length === 0) {
-      this.isTimeToTakeTrash = false;
-      this.nextCollectionTime = 'No configurado';
-      this.estimatedMinutes = 0;
-      this.estimatedMeters = 0;
-      return;
-    }
+    // 1. Determinar próxima recolección según horario
+    if (this.collectionSchedule && this.collectionSchedule.length > 0) {
+      const now = new Date();
+      const daysWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+      const todayName = daysWeek[now.getDay()];
+      const todaySchedule = this.collectionSchedule.find((s: any) => s.day === todayName);
 
-    const now = new Date();
-    const daysWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const todayName = daysWeek[now.getDay()];
-    const todaySchedule = this.collectionSchedule.find((s: any) => s.day === todayName);
+      if (todaySchedule) {
+        this.nextCollectionTime = todaySchedule.time;
+        const [hours, minutes] = todaySchedule.time.split(':').map(Number);
+        const scheduleDate = new Date();
+        scheduleDate.setHours(hours, minutes, 0);
 
-    if (todaySchedule) {
-      this.nextCollectionTime = todaySchedule.time;
-      const [hours, minutes] = todaySchedule.time.split(':').map(Number);
-      const scheduleDate = new Date();
-      scheduleDate.setHours(hours, minutes, 0);
-
-      const diffMs = scheduleDate.getTime() - now.getTime();
-      const diffMins = diffMs / 60000;
-
-      this.isTimeToTakeTrash = diffMins > 0 && diffMins <= 60;
-
-      // Lógica de Seguimiento: Solo si hay vehículos activos hoy
-      if (this.activeVehicles.length > 0 && diffMins > 0 && diffMins < 60) {
-        // Simulamos el ETA basado en el vehículo más cercano asignado
-        this.estimatedMinutes = Math.max(Math.floor(diffMins * 0.8), 3);
-        this.estimatedMeters = this.estimatedMinutes * 110;
+        const diffMs = scheduleDate.getTime() - now.getTime();
+        const diffMins = diffMs / 60000;
+        this.isTimeToTakeTrash = diffMins > 0 && diffMins <= 60;
       } else {
-        this.estimatedMinutes = 0;
-        this.estimatedMeters = 0;
+        this.isTimeToTakeTrash = false;
+        this.nextCollectionTime = 'Próxima pronto';
       }
     } else {
       this.isTimeToTakeTrash = false;
-      this.nextCollectionTime = 'Próxima recolección pronto';
+      this.nextCollectionTime = 'No configurado';
+    }
+
+    // 2. Calcular Seguimiento Real si hay camiones activos
+    if (this.activeVehicles.length > 0 && this.userCoords) {
+      let minDistance = Infinity;
+      
+      this.activeVehicles.forEach(v => {
+        const d = this.calculateDistance(
+          this.userCoords!.lat, this.userCoords!.lng, 
+          Number(v.latitude), Number(v.longitude)
+        );
+        if (d < minDistance) minDistance = d;
+      });
+
+      this.estimatedMeters = Math.round(minDistance);
+      // Asumiendo velocidad promedio de 20km/h (333 metros/minuto)
+      this.estimatedMinutes = Math.max(Math.ceil(minDistance / 333), 1);
+    } else {
       this.estimatedMinutes = 0;
       this.estimatedMeters = 0;
     }
+  }
+
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371e3;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   }
 
   async openScheduleConfig() {

@@ -52,24 +52,36 @@
   </div>
 
   <!-- ETA Card -->
-  <div class="eta-card">
-    <div class="eta-header">
-      <span class="eta-title">Seguimiento en vivo</span>
-      <span class="eta-badge" [class.active]="estimatedMinutes > 0">
-        {{ estimatedMinutes > 0 ? 'En camino' : 'Programado' }}
-      </span>
-    </div>
-    <div class="eta-body">
-      <div class="eta-item">
-        <span class="eta-value">{{ estimatedMinutes > 0 ? estimatedMinutes : '--' }}</span>
-        <span class="eta-unit">min</span>
+  <div class="eta-card" [class.inactive]="estimatedMinutes === 0">
+    @if (estimatedMinutes > 0) {
+      <div class="eta-header">
+        <span class="eta-title">Seguimiento en vivo</span>
+        <span class="eta-badge active">En camino</span>
       </div>
-      <div class="eta-divider"></div>
-      <div class="eta-item">
-        <span class="eta-value">{{ estimatedMeters > 0 ? estimatedMeters : '--' }}</span>
-        <span class="eta-unit">m</span>
+      <div class="eta-body">
+        <div class="eta-item">
+          <span class="eta-value">{{ estimatedMinutes }}</span>
+          <span class="eta-unit">min</span>
+        </div>
+        <div class="eta-divider"></div>
+        <div class="eta-item">
+          <span class="eta-value">{{ estimatedMeters }}</span>
+          <span class="eta-unit">m</span>
+        </div>
       </div>
-    </div>
+    } @else {
+      <div class="eta-empty-state">
+        <div class="empty-icon-pulse">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+          </svg>
+        </div>
+        <div class="empty-text">
+          <span class="empty-title">Pausa en el servicio</span>
+          <p class="empty-desc">Nuestras unidades están en recarga o cambio de turno. ¡Regresamos pronto para mantener a Neiva reluciente!</p>
+        </div>
+      </div>
+    }
     <div class="eta-footer">
       <span>Próxima recolección: <strong>{{ nextCollectionTime }}</strong></span>
     </div>

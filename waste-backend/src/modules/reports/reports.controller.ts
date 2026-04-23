@@ -163,10 +163,12 @@ export const getMyReports = async (req: CitizenRequest, res: Response) => {
 
 export const createReport = async (req: CitizenRequest, res: Response) => {
   const userId = req.citizen?.id;
-  const { type, description, photoUrl, latitude, longitude } = req.body;
+  // req.body.photo_url puede venir del middleware optimizeImage o del body (Base64 legacy)
+  const { type, description, latitude, longitude } = req.body;
+  const photoUrl = req.body.photo_url || req.body.photoUrl;
 
   if (!type || !description || !photoUrl || !latitude || !longitude) {
-    return res.status(400).json({ message: "Todos los campos son obligatorios" });
+    return res.status(400).json({ message: "Todos los campos son obligatorios (tipo, descripción, foto, coordenadas)" });
   }
 
   try {
@@ -182,6 +184,7 @@ export const createReport = async (req: CitizenRequest, res: Response) => {
     res.status(500).json({ message: "Error del servidor" });
   }
 };
+
 
 export const updateReportStatus = async (req: AuthRequest, res: Response) => {
   const { id } = req.params;

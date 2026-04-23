@@ -2,8 +2,10 @@ import { Component, OnInit, OnDestroy, inject, ElementRef, ViewChild, AfterViewI
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FleetService, NearbyReport } from '../../core/services/fleet.service';
+import { SocketService } from '../../core/services/socket.service';
 import { Vehicle, VehicleDetail } from '../../shared/models/fleet.model';
 import * as L from 'leaflet';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-fleet-map',
@@ -16,6 +18,7 @@ export class FleetMapComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('mapContainer') mapContainer!: ElementRef;
 
   private svc = inject(FleetService);
+  private socket = inject(SocketService);
 
   vehicles:        Vehicle[]       = [];
   selectedVehicle: VehicleDetail | null = null;
@@ -34,13 +37,17 @@ export class FleetMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private map:     L.Map | null = null;
   private markers: Map<string, L.CircleMarker> = new Map();
   private reportMarkers: Map<string, L.Marker> = new Map();
-  private refreshInterval: any;
+  private socketSub: Subscription | null = null;
 
   private readonly CENTER: L.LatLngExpression = [2.9273, -75.2819];
 
   ngOnInit(): void {
     this.loadVehicles();
-    this.refreshInterval = setInterval(() => this.loadVehicles(true), 30000);
+    
+    // Suscribirse a actualizaciones en tiempo real via Socket.io
+    this.socketSub = this.socket.getVehicleUpdates().subscribe(data => {
+      this.handleVehicleMovement(data);
+    });
   }
 
   ngAfterViewInit(): void {
@@ -48,7 +55,34 @@ export class FleetMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.refreshInterval) clearInterval(this.refreshInterval);
+    if (this.socketSub) this.socketSub.unsubscribe();
+  }
+
+  /**
+   * Maneja el movimiento de un vehículo recibido por WebSockets
+   */
+  private handleVehicleMovement(data: any): void {
+    const { vehicleId, latitude, longitude } = data;
+    
+    // 1. Actualizar datos en el array local de vehículos
+    const vehicle = this.vehicles.find(v => v.id === vehicleId);
+    if (vehicle) {
+      vehicle.latitude = latitude;
+      vehicle.longitude = longitude;
+    }
+
+    // 2. Mover marcador en el mapa
+    if (this.map && this.markers.has(vehicleId)) {
+      const pos = L.latLng(Number(latitude), Number(longitude));
+      this.markers.get(vehicleId)?.setLatLng(pos);
+      
+      // Si el vehículo está seleccionado, centrar el mapa si es necesario
+      if (this.selectedVehicle && this.selectedVehicle.vehicle.id === vehicleId) {
+        // Podríamos centrar automáticamente o solo actualizar el detalle
+        this.selectedVehicle.vehicle.latitude = latitude;
+        this.selectedVehicle.vehicle.longitude = longitude;
+      }
+    }
   }
 
   private initMap(): void {

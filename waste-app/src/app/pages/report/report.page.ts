@@ -228,6 +228,12 @@ export class ReportPage implements OnInit, AfterViewInit {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.map);
     this.marker = L.marker([this.latitude, this.longitude], { draggable: true }).addTo(this.map);
     this.marker.on('dragend', () => { const pos = this.marker!.getLatLng(); this.latitude = pos.lat; this.longitude = pos.lng; });
+    
+    // Forzar redibujado para evitar que el mapa aparezca gris o cortado
+    setTimeout(() => {
+      if (this.map) this.map.invalidateSize();
+    }, 400);
+
     this.getCurrentLocation();
   }
 
