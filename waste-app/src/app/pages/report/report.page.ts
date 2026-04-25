@@ -288,12 +288,26 @@ export class ReportPage implements OnInit, AfterViewInit {
 
   segmentChanged() {
     if (this.activeSegment === 'new') {
-      setTimeout(() => { this.initMap(); if (this.map) this.map.invalidateSize(); }, 100);
-    } else { this.loadMyReports(); }
+      setTimeout(() => { this.initMap(); }, 100);
+    } else { 
+      this.destroyMap();
+      this.loadMyReports(); 
+    }
+  }
+
+  private destroyMap() {
+    if (this.map) {
+      this.marker = null;
+      this.map.remove();
+      this.map = null;
+    }
   }
 
   private initMap() {
-    if (this.map) return;
+    // Destruir mapa anterior si existe
+    if (this.map) {
+      this.destroyMap();
+    }
     
     // Crear un icono personalizado elegante (SVG) para evitar el error de imagen rota
     const customIcon = L.divIcon({
@@ -317,11 +331,6 @@ export class ReportPage implements OnInit, AfterViewInit {
 
     this.marker.on('dragend', () => { const pos = this.marker!.getLatLng(); this.latitude = pos.lat; this.longitude = pos.lng; });
     
-    // Forzar redibujado para evitar que el mapa aparezca gris o cortado
-    setTimeout(() => {
-      if (this.map) this.map.invalidateSize();
-    }, 400);
-
     this.getCurrentLocation();
   }
 
