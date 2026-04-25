@@ -28,11 +28,13 @@ El proyecto está organizado en tres componentes principales:
 
 ### 2. Configuración de Base de Datos
 1. Crea una base de datos llamada `waste_db`.
-2. Ejecuta los scripts de la carpeta [`/migrations`](./migrations) en orden secuencial para preparar el esquema:
-   - `001_new_tables.sql` (Tablas base)
-   - `002_gamification.sql` (Sistema de puntos y niveles)
-   - `003_add_user_schedule.sql` (Horarios ciudadanos)
-   - `004_postgis_integration.sql` (Funciones geográficas)
+2. Importa el archivo `waste_dashboard.sql` que contiene el esquema completo y los datos iniciales:
+
+```bash
+psql -U tu_usuario -d waste_db -f waste_dashboard.sql
+```
+
+*Nota: El archivo `waste_dashboard.sql` ya incluye todas las tablas, funciones de PostGIS y configuraciones de gamificación necesarias.*
 
 ### 3. Instalación y Ejecución
 
