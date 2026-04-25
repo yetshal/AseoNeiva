@@ -14,39 +14,60 @@ import { Report, ReportService } from '../../services/report.service';
   template: `
     <ion-header class="ion-no-border modal-header">
       <ion-toolbar>
-        <ion-title>Detalle del reporte</ion-title>
+        <ion-title>Detalles del Reporte</ion-title>
         <ion-buttons slot="end">
-          <ion-button (click)="dismiss()">Cerrar</ion-button>
+          <ion-button (click)="dismiss()" class="close-btn">
+            <ion-icon name="close-outline"></ion-icon>
+          </ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
     <ion-content class="detail-content">
-      <div class="detail-shell">
-        <img [src]="report.photo_url" class="detail-img" alt="Evidencia del reporte">
-
-        <div class="detail-title-row">
-          <div>
-            <span class="app-eyebrow">Reporte ciudadano</span>
-            <h2>{{ report.type }}</h2>
+      <div class="detail-container">
+        <div class="detail-hero">
+          <img [src]="report.photo_url" class="hero-img" alt="Evidencia">
+          <div class="hero-overlay">
+            <span class="status-badge" [class.amber]="report.status === 'pending'" [class.green]="report.status === 'resolved'" [class.blue]="report.status === 'reviewing'">
+              {{ getStatusLabel(report.status || '') }}
+            </span>
           </div>
-          <span class="status-pill" [class.amber]="report.status === 'pending'" [class.green]="report.status === 'resolved'" [class.blue]="report.status === 'reviewing'">
-            {{ getStatusLabel(report.status || '') }}
-          </span>
         </div>
 
-        <p class="detail-desc">{{ report.description }}</p>
-
-        <div class="detail-meta">
-          <div>
-            <ion-icon name="calendar-outline"></ion-icon>
-            <span>Fecha</span>
-            <strong>{{ report.created_at | date:'medium' }}</strong>
+        <div class="detail-body animate-rise">
+          <div class="header-section">
+            <span class="category-tag">{{ report.type }}</span>
+            <h1 class="report-title">Reporte ciudadano</h1>
+            <p class="report-description">{{ report.description }}</p>
           </div>
-          <div>
-            <ion-icon name="location-outline"></ion-icon>
-            <span>Coordenadas</span>
-            <strong>{{ report.latitude }}, {{ report.longitude }}</strong>
+
+          <div class="info-grid">
+            <div class="info-card">
+              <ion-icon name="calendar-clear-outline" class="card-icon"></ion-icon>
+              <div class="card-text">
+                <span class="label">REGISTRADO EL</span>
+                <span class="value">{{ report.created_at | date:'dd MMM, yyyy' }}</span>
+                <span class="sub-value">{{ report.created_at | date:'hh:mm a' }}</span>
+              </div>
+            </div>
+
+            <div class="info-card">
+              <ion-icon name="location-outline" class="card-icon"></ion-icon>
+              <div class="card-text">
+                <span class="label">UBICACIÓN GPS</span>
+                <span class="value">{{ report.latitude | number:'1.4-4' }}, {{ report.longitude | number:'1.4-4' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="map-section">
+            <div class="section-header">
+              <ion-icon name="map-outline"></ion-icon>
+              <span>Ubicación en mapa</span>
+            </div>
+            <div class="detail-map-wrapper">
+              <div #detailMap class="detail-mini-map"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -54,91 +75,71 @@ import { Report, ReportService } from '../../services/report.service';
   `,
   styles: [`
     .modal-header ion-toolbar {
-      --background: transparent;
-      --border-width: 0;
+      --background: #ffffff;
+      --color: var(--app-ink);
+      --padding-top: 8px;
+      --padding-bottom: 8px;
     }
-
-    .detail-content {
-      --background: linear-gradient(145deg, rgba(238, 246, 244, 1) 0%, rgba(238, 243, 255, 1) 100%);
-    }
-
-    .detail-shell {
-      padding: 18px;
-    }
-
-    .detail-img {
-      width: 100%;
-      height: 260px;
-      border-radius: 26px;
-      object-fit: cover;
-      box-shadow: var(--app-shadow-md);
-    }
-
-    .detail-title-row {
-      margin-top: 20px;
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .detail-title-row h2 {
-      margin: 5px 0 0;
-      color: var(--app-ink);
-      font-size: 22px;
-      font-weight: 950;
-    }
-
-    .detail-desc {
-      margin: 16px 0;
-      color: var(--app-ink-soft);
-      font-size: 14px;
-      line-height: 1.55;
-    }
-
-    .detail-meta {
-      display: grid;
-      gap: 10px;
-    }
-
-    .detail-meta div {
-      min-height: 74px;
-      border: 1px solid var(--app-line);
-      border-radius: 20px;
-      padding: 14px;
-      display: grid;
-      grid-template-columns: auto 1fr;
-      column-gap: 10px;
-      align-items: center;
-      background: rgba(255, 255, 255, 0.76);
-    }
-
-    .detail-meta ion-icon {
-      grid-row: 1 / span 2;
-      color: var(--app-green);
-      font-size: 22px;
-    }
-
-    .detail-meta span {
-      color: var(--app-muted);
-      font-size: 11px;
-      font-weight: 850;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-    }
-
-    .detail-meta strong {
-      min-width: 0;
-      overflow-wrap: anywhere;
-      color: var(--app-ink);
-      font-size: 13px;
-      font-weight: 800;
-    }
+    ion-title { font-weight: 900; font-size: 16px; }
+    .close-btn { --color: var(--app-ink-soft); font-size: 24px; }
+    .detail-content { --background: #f4f7f6; }
+    .detail-hero { position: relative; width: 100%; height: 260px; overflow: hidden; }
+    .hero-img { width: 100%; height: 100%; object-fit: cover; }
+    .hero-overlay { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0,0,0,0.3) 0%, transparent 40%); padding: 20px; display: flex; align-items: flex-end; justify-content: flex-end; }
+    .status-badge { padding: 6px 16px; border-radius: 99px; background: #ffffff; font-size: 11px; font-weight: 900; text-transform: uppercase; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+    .status-badge.amber { color: #d58013; }
+    .status-badge.green { color: #148f78; }
+    .status-badge.blue { color: #1e6bd6; }
+    .detail-body { background: #f4f7f6; border-radius: 32px 32px 0 0; margin-top: -30px; padding: 24px 20px; position: relative; z-index: 10; display: grid; gap: 24px; }
+    .category-tag { display: inline-block; padding: 4px 12px; background: rgba(20, 143, 120, 0.1); color: #148f78; border-radius: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 8px; }
+    .report-title { margin: 0 0 10px; font-size: 24px; font-weight: 950; color: var(--app-ink); }
+    .report-description { margin: 0; color: var(--app-ink-soft); font-size: 15px; line-height: 1.6; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .info-card { background: #ffffff; padding: 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.04); display: flex; flex-direction: column; gap: 10px; }
+    .card-icon { font-size: 20px; color: #148f78; }
+    .card-text { display: flex; flex-direction: column; }
+    .label { font-size: 9px; font-weight: 800; color: var(--app-muted); letter-spacing: 0.06em; }
+    .value { font-size: 13px; font-weight: 800; color: var(--app-ink); }
+    .sub-value { font-size: 11px; color: var(--app-muted); }
+    .section-header { display: flex; align-items: center; gap: 8px; color: var(--app-ink); font-weight: 850; font-size: 14px; margin-bottom: 12px; }
+    .detail-map-wrapper { width: 100%; height: 160px; border-radius: 24px; overflow: hidden; border: 1px solid rgba(0,0,0,0.06); }
+    .detail-mini-map { width: 100%; height: 100%; }
   `]
 })
-export class ReportDetailModal {
+export class ReportDetailModal implements AfterViewInit {
   @Input() report!: Report;
+  @ViewChild('detailMap') mapContainer!: ElementRef;
+  
   private modalCtrl = inject(ModalController);
+
+  ngAfterViewInit() {
+    setTimeout(() => this.initMiniMap(), 400);
+  }
+
+  private initMiniMap() {
+    if (!this.mapContainer?.nativeElement) return;
+    
+    const lat = Number(this.report.latitude);
+    const lng = Number(this.report.longitude);
+
+    const map = L.map(this.mapContainer.nativeElement, {
+      center: [lat, lng],
+      zoom: 15,
+      zoomControl: false,
+      attributionControl: false
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    const customIcon = L.divIcon({
+      className: 'detail-marker',
+      html: `<div style="background: var(--app-green); width: 14px; height: 14px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.3);"></div>`,
+      iconSize: [14, 14],
+      iconAnchor: [7, 7]
+    });
+
+    L.marker([lat, lng], { icon: customIcon }).addTo(map);
+  }
 
   getStatusLabel(status: string): string {
     const labels: { [key: string]: string } = {
@@ -221,29 +222,29 @@ export class ReportDetailModal {
               </div>
             </div>
 
+            <!-- Selector de Tipo Elegante -->
             <div class="app-field">
-              <label class="app-label" for="problem-type">Tipo de problema</label>
-              <div class="app-input-shell select-shell">
-                <ion-icon name="warning-outline"></ion-icon>
-                <select id="problem-type" [(ngModel)]="selectedType">
-                  <option [ngValue]="null" disabled>Selecciona una opción</option>
-                  @for (type of problemTypes; track type) {
-                    <option [value]="type">{{ type }}</option>
-                  }
-                </select>
-                <ion-icon name="chevron-down-outline"></ion-icon>
+              <label class="app-label">¿Cuál es el problema?</label>
+              <div class="custom-dropdown-trigger" (click)="openTypeSelector()">
+                <div class="trigger-content">
+                  <ion-icon [name]="getSelectedTypeIcon()" class="type-icon" [style.color]="getSelectedTypeColor()"></ion-icon>
+                  <span [class.placeholder]="!selectedType">
+                    {{ selectedType || 'Selecciona el tipo de reporte' }}
+                  </span>
+                </div>
+                <ion-icon name="chevron-down-outline" class="chevron"></ion-icon>
               </div>
             </div>
 
             <div class="app-field">
-              <label class="app-label" for="report-description">Detalles del reporte</label>
+              <label class="app-label" for="report-description">Detalles adicionales</label>
               <div class="app-input-shell textarea-shell">
                 <ion-icon name="document-text-outline"></ion-icon>
                 <textarea
                   id="report-description"
                   [(ngModel)]="description"
                   rows="4"
-                  placeholder="¿Qué está pasando?"></textarea>
+                  placeholder="Describe brevemente lo observado..."></textarea>
               </div>
             </div>
 
@@ -285,6 +286,30 @@ export class ReportDetailModal {
           }
         </section>
       </main>
+
+      <!-- MODAL SELECTOR DE TIPOS (BOTTOM SHEET) -->
+      <ion-modal #typeModal [isOpen]="isTypeModalOpen" (didDismiss)="isTypeModalOpen = false" [initialBreakpoint]="0.65" [breakpoints]="[0, 0.65, 0.9]">
+        <ng-template>
+          <ion-header class="ion-no-border">
+            <ion-toolbar>
+              <ion-title>Tipo de Reporte</ion-title>
+            </ion-toolbar>
+          </ion-header>
+          <ion-content class="ion-padding-bottom">
+            <div class="type-list">
+              @for (type of problemTypes; track type.id) {
+                <button class="type-option" (click)="selectType(type.id)" [class.selected]="selectedType === type.id">
+                  <div class="option-icon" [style.background-color]="type.color + '15'" [style.color]="type.color">
+                    <ion-icon [name]="type.icon"></ion-icon>
+                  </div>
+                  <span class="option-label">{{ type.id }}</span>
+                  <ion-icon name="checkmark-circle" class="option-check" *ngIf="selectedType === type.id"></ion-icon>
+                </button>
+              }
+            </div>
+          </ion-content>
+        </ng-template>
+      </ion-modal>
     </ion-content>
   `,
   styles: [`
@@ -294,12 +319,27 @@ export class ReportDetailModal {
 
     .segment-toolbar {
       --background: transparent;
+      --padding-start: 0;
+      --padding-end: 0;
+    }
+
+    .app-secondary-shell {
+      width: 100%;
+    }
+
+    .app-secondary-card {
+      width: 100%;
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 6px;
+      box-shadow: var(--app-shadow-sm);
     }
 
     .custom-segment {
-      --background: rgba(36, 55, 89, 0.07);
-      border-radius: 16px;
+      --background: rgba(36, 55, 89, 0.05);
+      border-radius: 14px;
       padding: 2px;
+      width: 100%;
     }
 
     .custom-segment ion-segment-button {
@@ -391,6 +431,8 @@ export class ReportDetailModal {
 
     .report-form {
       padding: 20px;
+      display: grid;
+      gap: 18px;
     }
 
     .map-wrapper {
@@ -424,24 +466,49 @@ export class ReportDetailModal {
       box-shadow: 0 12px 22px rgba(16, 35, 63, 0.18);
     }
 
-    .select-shell select {
-      appearance: none;
+    /* Estilos del Custom Dropdown */
+    .custom-dropdown-trigger {
+      min-height: 54px;
+      background: #ffffff;
+      border: 1px solid var(--app-line);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      transition: all 0.2s ease;
     }
+    .custom-dropdown-trigger:active { transform: scale(0.98); background: #f9f9f9; }
+    .trigger-content { display: flex; align-items: center; gap: 12px; }
+    .type-icon { font-size: 22px; }
+    .trigger-content span { font-weight: 750; color: var(--app-ink); font-size: 14px; }
+    .trigger-content .placeholder { color: var(--app-muted); font-weight: 600; }
+    .chevron { font-size: 18px; color: var(--app-muted); }
 
-    .select-shell ion-icon:last-child {
-      margin-left: auto;
-      color: var(--app-muted);
-      pointer-events: none;
+    /* Estilos del Modal de Tipos */
+    ion-modal::part(content) { border-radius: 32px 32px 0 0; }
+    .type-list { padding: 10px 16px 30px; display: grid; gap: 8px; }
+    .type-option {
+      width: 100%;
+      min-height: 62px;
+      background: #fff;
+      border: 1px solid #f2f4f3;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 16px;
+      text-align: left;
     }
+    .type-option.selected { border-color: var(--app-green); background: rgba(20, 143, 120, 0.04); }
+    .option-icon { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+    .option-label { flex: 1; font-weight: 850; color: var(--app-ink); font-size: 14px; }
+    .option-check { color: var(--app-green); font-size: 22px; }
 
     .textarea-shell {
       align-items: flex-start;
       min-height: 118px;
       padding-top: 14px;
-    }
-
-    .textarea-shell ion-icon {
-      margin-top: 1px;
     }
 
     .textarea-shell textarea {
@@ -578,6 +645,7 @@ export class ReportPage implements OnInit, AfterViewInit {
   selectedType: string | null = null;
   description: string = '';
   submitting = false;
+  isTypeModalOpen = false;
   reports: Report[] = [];
 
   latitude: number = 2.9273;
@@ -585,7 +653,19 @@ export class ReportPage implements OnInit, AfterViewInit {
   private map: L.Map | null = null;
   private marker: L.Marker | null = null;
 
-  problemTypes = ['Basura acumulada', 'Camión no pasó', 'Contenedor dañado', 'Punto ilegal de residuos', 'Otros'];
+  problemTypes = [
+    { id: 'Basura acumulada', icon: 'trash-outline', color: '#E85D58' },
+    { id: 'Camión no pasó', icon: 'bus-outline', color: '#1E6BD6' },
+    { id: 'Contenedor dañado', icon: 'construct-outline', color: '#F5A623' },
+    { id: 'Contenedor rebosado', icon: 'layers-outline', color: '#FF8C00' },
+    { id: 'Punto ilegal de residuos', icon: 'warning-outline', color: '#148F78' },
+    { id: 'Animal muerto', icon: 'paw-outline', color: '#8B4513' },
+    { id: 'Escombros en vía', icon: 'cube-outline', color: '#708090' },
+    { id: 'Quema de basura', icon: 'flame-outline', color: '#FF4500' },
+    { id: 'Alcantarilla obstruida', icon: 'water-outline', color: '#00CED1' },
+    { id: 'Falta de barrido', icon: 'leaf-outline', color: '#228B22' },
+    { id: 'Otros', icon: 'ellipsis-horizontal-outline', color: '#666666' }
+  ];
 
   ngOnInit() {
     this.loadMyReports();
@@ -593,6 +673,25 @@ export class ReportPage implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     if (this.activeSegment === 'new') setTimeout(() => this.initMap(), 500);
+  }
+
+  openTypeSelector() {
+    this.isTypeModalOpen = true;
+  }
+
+  selectType(typeId: string) {
+    this.selectedType = typeId;
+    this.isTypeModalOpen = false;
+  }
+
+  getSelectedTypeIcon() {
+    const type = this.problemTypes.find(t => t.id === this.selectedType);
+    return type ? type.icon : 'help-circle-outline';
+  }
+
+  getSelectedTypeColor() {
+    const type = this.problemTypes.find(t => t.id === this.selectedType);
+    return type ? type.color : '#7a8798';
   }
 
   segmentChanged() {
