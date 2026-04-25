@@ -1,23 +1,43 @@
-# Waste Backend
+# AseoNeiva Backend API 🚀
 
-API REST para el sistema de gestión de residuos AseoNeiva, desarrollada con Express.js y TypeScript.
+Servidor API REST y en tiempo real para el sistema de gestión de residuos de Neiva. Desarrollado con **Node.js**, **Express**, **TypeScript** y **PostgreSQL**, este motor centraliza la lógica ciudadana, operativa y administrativa del proyecto.
 
-## Requisitos Previos
+## ✨ Características Principales
 
-- Node.js (v18 o superior)
-- npm o yarn
-- PostgreSQL (v14 o superior)
+- **🔐 Sistema de Autenticación Dual:** Gestión separada para ciudadanos (App Móvil) y personal administrativo (Dashboard) mediante JWT.
+- **🛰️ Monitoreo en Tiempo Real:** Comunicación bidireccional mediante **Socket.io** para el seguimiento de la flota y notificaciones.
+- **📊 Módulos de Análisis:** Generación de métricas de reportes, eficiencia de flota y estadísticas de usuarios.
+- **🚛 Gestión de Flota y Rutas:** Control de vehículos, asignación de conductores y planificador de rutas de recolección/barrido.
+- **🏆 Motor de Gamificación:** Sistema de niveles, recompensas, tablas de clasificación y validación de recolección para ciudadanos.
+- **📸 Procesamiento de Imágenes:** Gestión de evidencias fotográficas para reportes mediante **Multer** y optimización con **Sharp**.
+- **📍 Soporte Espacial:** Integración con **PostGIS** para consultas de geolocalización y proximidad.
 
-## Instalación
+## 🛠️ Tecnologías
+
+- **Runtime:** Node.js (TypeScript)
+- **Framework:** Express.js
+- **Base de Datos:** PostgreSQL con PostGIS
+- **Tiempo Real:** Socket.io
+- **Validación:** Joi y Zod
+- **Seguridad:** Bcrypt (Hasheo) y JSON Web Token (Autenticación)
+- **Multimedia:** Multer (Upload) y Sharp (Optimización)
+
+## 🚀 Requisitos Previos
+
+- **Node.js:** v18 o superior
+- **PostgreSQL:** v14 o superior con extensión **PostGIS** activa.
+- **npm** o **yarn**
+
+## 📦 Instalación
 
 ```bash
 cd waste-backend
 npm install
 ```
 
-## Configuración
+## ⚙️ Configuración
 
-Crear archivo `.env` en la raíz del proyecto:
+Crea un archivo `.env` en la raíz de `waste-backend` basado en el siguiente ejemplo:
 
 ```env
 PORT=3000
@@ -26,94 +46,53 @@ DB_PORT=5432
 DB_NAME=waste_db
 DB_USER=tu_usuario
 DB_PASSWORD=tu_contraseña
-JWT_SECRET=tu_clave_secreta
+JWT_SECRET=tu_clave_secreta_maestra
 JWT_EXPIRES_IN=7d
-CORS_ORIGIN=http://localhost:4200
+CORS_ORIGIN=http://localhost:4200,http://localhost:8100
 ```
 
-## Desarrollo
+## 💻 Desarrollo
+
+Para iniciar el servidor en modo desarrollo con recarga automática:
 
 ```bash
 npm run dev
 ```
 
-El servidor iniciara en `http://localhost:3000`.
+El API estará disponible en `http://localhost:3000`. Puedes verificar el estado en `http://localhost:3000/api/health`.
 
-## Producción
+## 🏗️ Producción
 
-```bash
-npm run build
-npm start
-```
+1. **Compilar el proyecto:**
+   ```bash
+   npm run build
+   ```
+2. **Iniciar servidor:**
+   ```bash
+   npm start
+   ```
 
-## Estructura del Proyecto
+## 📂 Estructura del Proyecto
 
 ```
 waste-backend/
 ├── src/
-│   ├── index.ts              # Punto de entrada
-│   ├── app.ts                # Configuración de Express
-│   ├── config/
-│   │   └── db.ts             # Conexión a PostgreSQL
-│   ├── middleware/
-│   │   ├── auth.ts           # Autenticación JWT
-│   │   └── error.ts          # Manejo de errores
-│   ├── modules/
-│   │   ├── auth/             # Autenticación
-│   │   │   ├── controller.ts
-│   │   │   ├── model.ts
-│   │   │   ├── routes.ts
-│   │   │   └── validation.ts
-│   │   └── users/            # Gestión de usuarios
-│   │       ├── controller.ts
-│   │       ├── model.ts
-│   │       ├── routes.ts
-│   │       └── validation.ts
-│   └── utils/
-│       └── response.ts       # Utilitarios de respuesta
-├── .env
+│   ├── config/               # Configuración de DB y variables
+│   ├── middleware/           # Auth, Multer, Error handling, Ownership
+│   ├── modules/              # Lógica de negocio por dominio
+│   │   ├── analysis/         # Reportes estadísticos y tendencias
+│   │   ├── citizen-auth/     # Registro y login móvil
+│   │   ├── fleet/            # Gestión de vehículos y ubicación GPS
+│   │   ├── gamification/     # Niveles, puntos y logros
+│   │   ├── reports/          # Gestión de reportes ciudadanos
+│   │   ├── routes/           # Planificador y asignaciones
+│   │   └── staff/            # Administración del personal
+│   └── index.ts              # Punto de entrada y definición de rutas
+├── uploads/                  # Almacenamiento de imágenes de reportes
 ├── package.json
 └── tsconfig.json
 ```
 
-## Dependencias Principales
+## 📝 Licencia
 
-- **express**: Framework web
-- **pg**: Cliente PostgreSQL
-- **bcrypt**: Encriptación de contraseñas
-- **jsonwebtoken**: Autenticación JWT
-- **joi**: Validación de datos
-- **cors**: CORS
-- **dotenv**: Variables de entorno
-
-## Endpoints del API
-
-### Autenticación
-
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Registrar nuevo usuario |
-| POST | `/api/auth/login` | Iniciar sesión |
-| GET | `/api/auth/profile` | Obtener perfil del usuario |
-
-### Usuarios
-
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/api/users` | Listar todos los usuarios |
-| GET | `/api/users/:id` | Obtener usuario por ID |
-| PUT | `/api/users/:id` | Actualizar usuario |
-| DELETE | `/api/users/:id` | Eliminar usuario |
-
-## Scripts Disponibles
-
-| Comando | Descripción |
-|---------|-------------|
-| `npm run dev` | Iniciar servidor en desarrollo |
-| `npm run build` | Compilar TypeScript |
-| `npm start` | Ejecutar versión compilada |
-| `npm run lint` | Verificar código |
-
-## Licencia
-
-MIT
+MIT - AseoNeiva
