@@ -10,16 +10,24 @@ import { HttpClientModule } from '@angular/common/http';
   standalone: true,
   imports: [CommonModule, IonicModule, HttpClientModule],
   template: `
-    <ion-header [translucent]="true" class="page-header">
+    <ion-header [translucent]="true" class="page-header app-page-header">
       <ion-toolbar>
-        <div class="header-content">
-          <span class="header-title">Rastreo en vivo</span>
-          <button class="icon-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-          </button>
+        <div class="app-toolbar-shell">
+          <div class="app-toolbar-card">
+            <div class="app-toolbar-copy">
+              <span class="app-toolbar-eyebrow">Monitoreo</span>
+              <div class="app-toolbar-title-row">
+                <h1 class="app-toolbar-title">Rastreo en vivo</h1>
+                <span class="app-toolbar-chip">{{ activeTrucksCount }} en ruta</span>
+              </div>
+            </div>
+
+            <div class="app-toolbar-actions">
+              <button class="app-toolbar-icon-button emphasis" (click)="getCurrentLocation()">
+                <ion-icon name="locate-outline"></ion-icon>
+              </button>
+            </div>
+          </div>
         </div>
       </ion-toolbar>
     </ion-header>
@@ -28,7 +36,7 @@ import { HttpClientModule } from '@angular/common/http';
       <div #mapContainer class="map-container"></div>
 
       <!-- Fleet Overview Header -->
-      <div class="fleet-overview-header shadow-premium animate-down">
+      <div class="fleet-overview-header app-panel animate-down">
         <div class="fleet-summary">
           <div class="summary-item">
             <span class="sum-val">{{ nearbyTrucks.length }}</span>
@@ -46,8 +54,10 @@ import { HttpClientModule } from '@angular/common/http';
       </div>
 
       <!-- Floating Stats Widget -->
-      <div class="stats-widget shadow-premium animate-fade" *ngIf="!selectedTruck">
-        <div class="widget-icon">📡</div>
+      <div class="stats-widget app-panel animate-fade" *ngIf="!selectedTruck">
+        <div class="widget-icon">
+          <ion-icon name="radio-outline"></ion-icon>
+        </div>
         <div class="widget-content">
           <span class="w-title">Monitoreo Satelital</span>
           <span class="w-desc">Actualizando cada 10s</span>
@@ -56,7 +66,7 @@ import { HttpClientModule } from '@angular/common/http';
 
       <!-- Elegant Bottom Sheet for Truck Detail -->
       @if (selectedTruck) {
-        <div class="truck-sheet animate-up">
+        <div class="truck-sheet app-panel animate-up">
           <div class="sheet-handle"></div>
           <div class="sheet-header">
             <div class="truck-identity">
@@ -105,9 +115,11 @@ import { HttpClientModule } from '@angular/common/http';
         </div>
         <div class="fleet-scroller">
           @for (truck of nearbyTrucks; track truck.id) {
-            <div class="fleet-card shadow-premium" (click)="selectTruck(truck)">
+            <div class="fleet-card app-panel" (click)="selectTruck(truck)">
               <div class="card-status-dot" [class.online]="truck.status === 'active'"></div>
-              <div class="card-icon">🚛</div>
+              <div class="card-icon">
+                <ion-icon name="bus-outline"></ion-icon>
+              </div>
               <div class="card-info">
                 <span class="c-plate">{{ truck.plate }}</span>
                 <span class="c-dist">{{ truck.distance }}m</span>
@@ -124,71 +136,74 @@ import { HttpClientModule } from '@angular/common/http';
     </ion-content>
     `,
     styles: [`
+    .page-header .app-toolbar-shell {
+      padding-bottom: 8px;
+    }
+
     .map-container { height: 100%; width: 100%; z-index: 1; }
 
     .fleet-overview-header {
-      position: absolute; top: 50px; left: 16px; right: 16px; z-index: 10;
-      background: white; border-radius: 20px; padding: 12px 16px;
+      position: absolute; top: 104px; left: 16px; right: 16px; z-index: 10;
+      padding: 14px 16px;
       display: flex; justify-content: space-between; align-items: center;
 
       .fleet-summary {
         display: flex; align-items: center; gap: 16px;
         .summary-item {
           display: flex; flex-direction: column;
-          .sum-val { font-size: 16px; font-weight: 800; color: var(--app-text-main); }
-          .sum-lab { font-size: 10px; color: var(--app-text-muted); font-weight: 700; text-transform: uppercase; }
+          .sum-val { font-size: 18px; font-weight: 800; color: var(--app-text-main); }
+          .sum-lab { font-size: 10px; color: var(--app-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
         }
-        .summary-divider { width: 1px; height: 24px; background: #e2e8f0; }
+        .summary-divider { width: 1px; height: 28px; background: #e2e8f0; }
       }
 
       .recenter-btn {
         width: 42px; height: 42px; border-radius: 14px; border: none;
         display: flex; align-items: center; justify-content: center;
-        color: white; font-size: 20px;
+        color: white; font-size: 20px; box-shadow: 0 14px 24px rgba(29,158,117,0.18);
       }
     }
 
     .stats-widget {
-      position: absolute; top: 125px; left: 16px; z-index: 10;
-      background: white; border-radius: 14px; padding: 10px 14px;
+      position: absolute; top: 178px; left: 16px; z-index: 10;
+      padding: 10px 14px;
       display: flex; align-items: center; gap: 12px;
-      .widget-icon { font-size: 18px; }
+      .widget-icon { width: 34px; height: 34px; border-radius: 12px; background: rgba(29,158,117,0.10); color: #1D9E75; display: flex; align-items: center; justify-content: center; font-size: 18px; }
       .w-title { display: block; font-size: 11px; font-weight: 800; color: var(--app-text-main); }
       .w-desc { font-size: 10px; color: #1D9E75; font-weight: 600; }
     }
 
     .truck-sheet {
-      position: absolute; bottom: 85px; left: 16px; right: 16px; z-index: 20;
-      background: white; border-radius: 28px; padding: 24px;
-      box-shadow: 0 15px 50px rgba(0,0,0,0.2);
+      position: absolute; bottom: 84px; left: 16px; right: 16px; z-index: 20;
+      border-radius: 30px; padding: 24px;
       .sheet-handle { width: 40px; height: 4px; background: #f1f5f9; border-radius: 10px; margin: -12px auto 16px; }
     }
 
     .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     .truck-identity {
       display: flex; align-items: center; gap: 16px;
-      .truck-icon-box { width: 48px; height: 48px; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: white; svg { width: 24px; } }
+      .truck-icon-box { width: 48px; height: 48px; border-radius: 18px; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 14px 24px rgba(29,158,117,0.18); svg { width: 24px; } }
       .truck-meta { display: flex; flex-direction: column; .truck-plate { font-size: 20px; font-weight: 800; color: var(--app-text-main); } .truck-driver { font-size: 13px; color: var(--app-text-muted); } }
     }
-    .truck-status-badge { font-size: 11px; font-weight: 800; padding: 6px 12px; border-radius: 10px; &.active { background: #ecfdf5; color: #059669; } }
+    .truck-status-badge { font-size: 11px; font-weight: 800; padding: 7px 12px; border-radius: 999px; &.active { background: #ecfdf5; color: #059669; } }
 
     .truck-stats-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); background: #f8fafc; border-radius: 20px; padding: 16px; margin-bottom: 24px;
+      display: grid; grid-template-columns: repeat(3, 1fr); background: #f7faf9; border-radius: 22px; padding: 16px; margin-bottom: 24px;
       .t-stat { text-align: center; display: flex; flex-direction: column; gap: 4px; &:not(:last-child) { border-right: 1px solid #e2e8f0; } .t-label { font-size: 11px; color: var(--app-text-muted); font-weight: 600; text-transform: uppercase; } .t-value { font-size: 16px; font-weight: 700; color: var(--app-text-main); } }
     }
 
-    .sheet-actions { display: flex; gap: 12px; .btn-action { flex: 1; height: 52px; border-radius: 16px; border: none; font-weight: 700; &.primary { background: #1D9E75; color: white; } &.secondary { background: #f1f5f9; color: #64748b; } } }
+    .sheet-actions { display: flex; gap: 12px; .btn-action { flex: 1; height: 50px; border-radius: 16px; border: none; font-weight: 700; &.primary { background: #1D9E75; color: white; box-shadow: 0 14px 24px rgba(29,158,117,0.18); } &.secondary { background: #f1f5f9; color: #64748b; } } }
 
     .fleet-scroller-container {
-      position: absolute; bottom: 85px; left: 0; right: 0; z-index: 10;
+      position: absolute; bottom: 84px; left: 0; right: 0; z-index: 10;
       .scroller-header { padding: 0 20px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: baseline; .scroller-title { color: var(--app-text-main); font-weight: 800; font-size: 14px; text-shadow: 0 1px 4px white; } .scroller-more { font-size: 11px; font-weight: 700; color: #1D9E75; } }
     }
 
     .fleet-scroller { display: flex; gap: 12px; padding: 0 20px 10px; overflow-x: auto; &::-webkit-scrollbar { display: none; } }
     .fleet-card {
-      min-width: 160px; background: white; padding: 14px; border-radius: 22px; display: flex; align-items: center; gap: 12px; position: relative;
+      min-width: 164px; padding: 14px; border-radius: 24px; display: flex; align-items: center; gap: 12px; position: relative;
       .card-status-dot { position: absolute; top: 12px; right: 12px; width: 6px; height: 6px; border-radius: 50%; background: #cbd5e1; &.online { background: #1D9E75; box-shadow: 0 0 6px rgba(29, 158, 117, 0.4); } }
-      .card-icon { font-size: 20px; }
+      .card-icon { width: 38px; height: 38px; border-radius: 14px; background: rgba(29,158,117,0.10); color: #1D9E75; display: flex; align-items: center; justify-content: center; font-size: 20px; }
       .card-info { display: flex; flex-direction: column; .c-plate { font-size: 14px; font-weight: 800; color: var(--app-text-main); } .c-dist { font-size: 11px; color: #1D9E75; font-weight: 600; } }
       .card-arrow { font-size: 14px; color: #cbd5e1; margin-left: auto; }
     }

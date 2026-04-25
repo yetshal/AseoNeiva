@@ -194,6 +194,11 @@ export class HomePage implements OnInit {
     return this.user.name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
   }
 
+  getDisplayName(): string {
+    if (!this.user?.name) return 'Usuario';
+    return this.user.name.trim().split(/\s+/)[0];
+  }
+
   getLevelTitle(): string {
     const level = this.user?.level || 1;
     if (level >= 5) return 'Master del Aseo';

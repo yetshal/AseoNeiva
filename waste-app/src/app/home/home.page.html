@@ -1,32 +1,33 @@
-<ion-header [translucent]="true" class="home-header">
+<ion-header [translucent]="true" class="home-header app-page-header">
   <ion-toolbar>
-    <div class="header-content">
-      <div class="user-info">
-        <span class="greeting">¡Hola, bienvenido!</span>
-        <h1 class="user-name">{{ user?.name || 'Usuario' }}</h1>
-      </div>
-      <div class="header-actions">
-        <button class="icon-btn" (click)="goToNotifications()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
-          <span class="notification-dot"></span>
-        </button>
-        <button class="profile-trigger" (click)="goToProfile()">
-          <div class="avatar-glow"></div>
-          <div class="avatar">{{ getUserInitials() }}</div>
-        </button>
+    <div class="app-toolbar-shell">
+      <div class="app-toolbar-card home-toolbar-card">
+        <div class="app-toolbar-copy">
+          <span class="app-toolbar-eyebrow">Panel ciudadano</span>
+          <div class="app-toolbar-title-row">
+            <h1 class="app-toolbar-title">Hola, {{ getDisplayName() }}</h1>
+            <span class="app-toolbar-chip">Nivel {{ user?.level || 1 }}</span>
+          </div>
+        </div>
+
+        <div class="app-toolbar-actions header-actions">
+          <button class="app-toolbar-icon-button notification-btn" (click)="goToNotifications()">
+            <ion-icon name="notifications-outline"></ion-icon>
+            <span class="notification-dot"></span>
+          </button>
+
+          <button class="profile-trigger" (click)="goToProfile()">
+            <div class="avatar-glow"></div>
+            <div class="avatar">{{ getUserInitials() }}</div>
+          </button>
+        </div>
       </div>
     </div>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true" class="home-content">
-  <!-- Status Dashboard -->
   <div class="main-dashboard ion-padding">
-    
-    <!-- Address Section -->
     <div class="location-bar" (click)="getCurrentLocation()">
       <div class="loc-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -41,10 +42,9 @@
       <ion-icon name="chevron-forward-outline" class="loc-chevron"></ion-icon>
     </div>
 
-    <!-- ETA Card -->
     <div class="premium-card eta-card" [class.inactive]="estimatedMinutes === 0">
       <div class="card-bg-decoration"></div>
-      
+
       @if (estimatedMinutes > 0) {
         <div class="eta-header">
           <div class="eta-title-group">
@@ -56,7 +56,7 @@
             EN VIVO
           </div>
         </div>
-        
+
         <div class="eta-body">
           <div class="eta-stat">
             <span class="stat-val">{{ estimatedMinutes }}</span>
@@ -78,36 +78,45 @@
             </div>
           </div>
           <div class="empty-info">
-            <h2 class="empty-title">Estado del Servicio</h2>
-            <p class="empty-desc">Nuestras unidades están en recarga o cambio de turno. Regresamos en breve para servirte.</p>
+            <h2 class="empty-title">Estado del servicio</h2>
+            <p class="empty-desc">
+              Nuestras unidades están en recarga o cambio de turno. Regresamos en breve para servirte.
+            </p>
           </div>
         </div>
       }
-      
+
       <div class="eta-footer">
         <ion-icon name="calendar-clear-outline"></ion-icon>
         <span>Próxima visita: <strong>{{ nextCollectionTime }}</strong></span>
       </div>
     </div>
 
-    <!-- Gamification Quick Stats -->
     <div class="quick-stats-grid">
       <div class="q-stat-card" (click)="goToProfile()">
-        <div class="q-icon-box points">⭐</div>
+        <div class="q-icon-box points">
+          <ion-icon name="sparkles-outline"></ion-icon>
+        </div>
         <div class="q-data">
           <span class="q-val">{{ currentPoints }}</span>
           <span class="q-lab">Puntos</span>
         </div>
       </div>
+
       <div class="q-stat-card" (click)="goToProfile()">
-        <div class="q-icon-box streak">🔥</div>
+        <div class="q-icon-box streak">
+          <ion-icon name="flame-outline"></ion-icon>
+        </div>
         <div class="q-data">
           <span class="q-val">{{ currentStreak }}</span>
           <span class="q-lab">Racha</span>
         </div>
       </div>
+
       <div class="q-stat-card" (click)="goToProfile()">
-        <div class="q-icon-box level">🏆</div>
+        <div class="q-icon-box level">
+          <ion-icon name="ribbon-outline"></ion-icon>
+        </div>
         <div class="q-data">
           <span class="q-val">{{ user?.level || 1 }}</span>
           <span class="q-lab">Nivel</span>
@@ -115,10 +124,9 @@
       </div>
     </div>
 
-    <!-- Collection Schedule -->
     <div class="section-container">
       <div class="section-header">
-        <h2 class="section-title">Tu Horario de Recolección</h2>
+        <h2 class="section-title">Tu horario de recolección</h2>
         <button class="action-link" (click)="openScheduleConfig()">Configurar</button>
       </div>
 
@@ -129,7 +137,7 @@
               <div class="day-bubble">{{ schedule.day.substring(0, 3) }}</div>
               <div class="time-info">
                 <span class="time-val">{{ schedule.time }}</span>
-                <span class="zone-tag">Zona Residencial</span>
+                <span class="zone-tag">Zona residencial</span>
               </div>
               <div class="status-icon">
                 <ion-icon name="checkmark-circle" color="primary"></ion-icon>
@@ -139,12 +147,13 @@
         </div>
       } @else {
         <div class="empty-placeholder" (click)="openScheduleConfig()">
-          <div class="placeholder-icon">📅</div>
+          <div class="placeholder-icon">
+            <ion-icon name="calendar-outline"></ion-icon>
+          </div>
           <p>No has configurado tus horarios</p>
           <button class="setup-btn">Configurar ahora</button>
         </div>
       }
     </div>
-
   </div>
 </ion-content>

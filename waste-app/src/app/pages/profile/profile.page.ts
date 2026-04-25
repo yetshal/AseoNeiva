@@ -90,14 +90,25 @@ export class EditProfileModal {
   standalone: true,
   imports: [CommonModule, IonicModule, FormsModule],
   template: `
-    <ion-header class="ion-no-border">
-      <ion-toolbar color="white">
-        <ion-title mode="ios">Mi Perfil</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="goToSettings()">
-            <ion-icon slot="icon-only" name="settings-outline"></ion-icon>
-          </ion-button>
-        </ion-buttons>
+    <ion-header class="ion-no-border app-page-header profile-top-header">
+      <ion-toolbar>
+        <div class="app-toolbar-shell">
+          <div class="app-toolbar-card">
+            <div class="app-toolbar-copy">
+              <span class="app-toolbar-eyebrow">Cuenta</span>
+              <div class="app-toolbar-title-row">
+                <h1 class="app-toolbar-title">Mi perfil</h1>
+                <span class="app-toolbar-chip">{{ achievementsCount }} logros</span>
+              </div>
+            </div>
+
+            <div class="app-toolbar-actions">
+              <button class="app-toolbar-icon-button emphasis" (click)="goToSettings()">
+                <ion-icon name="settings-outline"></ion-icon>
+              </button>
+            </div>
+          </div>
+        </div>
       </ion-toolbar>
     </ion-header>
 
@@ -126,22 +137,28 @@ export class EditProfileModal {
       <div class="profile-body ion-padding">
         <!-- Main Stats -->
         <div class="gamification-grid">
-          <div class="premium-stat-card shadow-premium">
-            <span class="p-icon">⭐</span>
+          <div class="premium-stat-card app-panel">
+            <span class="p-icon">
+              <ion-icon name="sparkles-outline"></ion-icon>
+            </span>
             <div class="p-info">
               <span class="p-val">{{ user?.points || 0 }}</span>
               <span class="p-lab">Puntos</span>
             </div>
           </div>
-          <div class="premium-stat-card shadow-premium">
-            <span class="p-icon">🔥</span>
+          <div class="premium-stat-card app-panel">
+            <span class="p-icon">
+              <ion-icon name="flame-outline"></ion-icon>
+            </span>
             <div class="p-info">
               <span class="p-val">{{ user?.streak || 0 }}</span>
               <span class="p-lab">Racha</span>
             </div>
           </div>
-          <div class="premium-stat-card shadow-premium">
-            <span class="p-icon">🏆</span>
+          <div class="premium-stat-card app-panel">
+            <span class="p-icon">
+              <ion-icon name="ribbon-outline"></ion-icon>
+            </span>
             <div class="p-info">
               <span class="p-val">{{ achievementsCount }}</span>
               <span class="p-lab">Logros</span>
@@ -150,7 +167,7 @@ export class EditProfileModal {
         </div>
 
         <!-- Progress Section -->
-        <div class="section-card shadow-premium animate-up">
+        <div class="section-card app-panel animate-up">
           <div class="section-header">
             <h2 class="section-title">Próximo Nivel</h2>
             <span class="progress-val">{{ progressToNextLevel }}%</span>
@@ -162,7 +179,7 @@ export class EditProfileModal {
         </div>
 
         <!-- Weekly Activity -->
-        <div class="section-card shadow-premium animate-up" style="animation-delay: 0.1s">
+        <div class="section-card app-panel animate-up" style="animation-delay: 0.1s">
           <h2 class="section-title">Actividad Semanal</h2>
           <div class="streak-grid">
             @for (day of weeklyStreak; track day.day) {
@@ -177,7 +194,7 @@ export class EditProfileModal {
         </div>
 
         <!-- Achievements -->
-        <div class="section-card shadow-premium animate-up" style="animation-delay: 0.2s">
+        <div class="section-card app-panel animate-up" style="animation-delay: 0.2s">
           <div class="section-header">
             <h2 class="section-title">Logros Destacados</h2>
             <button class="action-link" (click)="showAllAchievements()">Ver todos</button>
@@ -196,7 +213,9 @@ export class EditProfileModal {
               </div>
             } @empty {
               <div class="empty-ach-state">
-                <div class="empty-icon">🎖️</div>
+                <div class="empty-icon">
+                  <ion-icon name="medal-outline"></ion-icon>
+                </div>
                 <p>¡Realiza reportes para ganar tu primer logro!</p>
               </div>
             }
@@ -205,17 +224,17 @@ export class EditProfileModal {
 
         <!-- Settings Actions -->
         <div class="actions-group animate-up" style="animation-delay: 0.3s">
-          <button class="premium-action-btn shadow-premium" (click)="goToSettings()">
+          <button class="premium-action-btn app-panel" (click)="goToSettings()">
             <div class="btn-icon-bg"><ion-icon name="person-outline"></ion-icon></div>
             <span>Editar Perfil</span>
             <ion-icon name="chevron-forward-outline" class="btn-arrow"></ion-icon>
           </button>
-          <button class="premium-action-btn shadow-premium" (click)="goToHistory()">
+          <button class="premium-action-btn app-panel" (click)="goToHistory()">
             <div class="btn-icon-bg"><ion-icon name="document-text-outline"></ion-icon></div>
             <span>Historial de Reportes</span>
             <ion-icon name="chevron-forward-outline" class="btn-arrow"></ion-icon>
           </button>
-          <button class="premium-action-btn logout-btn shadow-premium" (click)="logout()">
+          <button class="premium-action-btn logout-btn app-panel" (click)="logout()">
             <div class="btn-icon-bg"><ion-icon name="log-out-outline"></ion-icon></div>
             <span>Cerrar Sesión</span>
           </button>
@@ -225,20 +244,21 @@ export class EditProfileModal {
   `,
   styles: [`
     .profile-content { --background: var(--app-bg); }
+    .profile-top-header .app-toolbar-shell { padding-bottom: 8px; }
 
     .profile-header-container {
       position: relative;
-      background: linear-gradient(135deg, #1D9E75 0%, #059669 100%);
-      padding: 60px 20px 60px;
+      background: linear-gradient(180deg, #0f6e56 0%, #1D9E75 55%, #38b98e 100%);
+      padding: 52px 20px 56px;
       text-align: center;
       color: white;
-      border-radius: 0 0 40px 40px;
+      border-radius: 0 0 44px 44px;
       overflow: hidden;
       
       .header-overlay {
         position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-        background: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
-        opacity: 0.05;
+        background: radial-gradient(circle at top right, rgba(255,255,255,0.22), rgba(255,255,255,0) 42%);
+        opacity: 1;
       }
     }
 
@@ -249,14 +269,15 @@ export class EditProfileModal {
         background: rgba(255,255,255,0.2); border-radius: 50%; filter: blur(10px);
       }
       .avatar, .avatar-img {
-        width: 100px; height: 100px; border-radius: 50%; background: white;
+        width: 98px; height: 98px; border-radius: 32px; background: white;
         color: #1D9E75; display: flex; align-items: center; justify-content: center;
         font-size: 36px; font-weight: 800; border: 4px solid rgba(255,255,255,0.3);
         position: relative; z-index: 2; object-fit: cover;
+        box-shadow: 0 18px 32px rgba(15,23,42,0.18);
       }
       .edit-avatar {
-        position: absolute; bottom: 0; right: 0; width: 34px; height: 34px;
-        background: white; border-radius: 50%; border: none; z-index: 3;
+        position: absolute; bottom: 0; right: 0; width: 36px; height: 36px;
+        background: white; border-radius: 14px; border: none; z-index: 3;
         color: #1D9E75; font-size: 18px; display: flex; align-items: center; justify-content: center;
         box-shadow: 0 4px 10px rgba(0,0,0,0.2);
       }
@@ -266,29 +287,30 @@ export class EditProfileModal {
     .user-email { font-size: 14px; opacity: 0.8; margin: 4px 0 20px; z-index: 2; position: relative; }
 
     .level-badge-premium {
-      display: inline-flex; flex-direction: column; padding: 8px 24px; border-radius: 16px;
+      display: inline-flex; flex-direction: column; padding: 9px 22px; border-radius: 18px;
       z-index: 2; position: relative;
+      box-shadow: 0 14px 28px rgba(15,23,42,0.16);
       .l-lvl { font-size: 10px; font-weight: 800; letter-spacing: 1px; opacity: 0.9; }
       .l-name { font-size: 14px; font-weight: 700; }
     }
 
-    .profile-body { margin-top: -30px; z-index: 10; position: relative; }
+    .profile-body { margin-top: -28px; z-index: 10; position: relative; padding-bottom: 110px; }
 
     .gamification-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 22px;
     }
 
     .premium-stat-card {
-      background: white; border-radius: 20px; padding: 16px 8px;
+      border-radius: 22px; padding: 18px 10px;
       display: flex; flex-direction: column; align-items: center; gap: 8px;
-      .p-icon { font-size: 24px; }
+      .p-icon { width: 40px; height: 40px; border-radius: 14px; background: rgba(29,158,117,0.10); color: #1D9E75; display: flex; align-items: center; justify-content: center; font-size: 20px; }
       .p-info { text-align: center; }
-      .p-val { font-size: 18px; font-weight: 800; color: var(--app-text-main); display: block; }
+      .p-val { font-size: 20px; font-weight: 800; color: var(--app-text-main); display: block; }
       .p-lab { font-size: 10px; font-weight: 700; color: var(--app-text-muted); text-transform: uppercase; }
     }
 
     .section-card {
-      background: white; border-radius: 24px; padding: 20px; margin-bottom: 20px;
+      border-radius: 26px; padding: 22px; margin-bottom: 18px;
       .section-header {
         display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
         .section-title { font-size: 16px; font-weight: 800; color: var(--app-text-main); margin: 0; }
@@ -298,7 +320,7 @@ export class EditProfileModal {
     }
 
     .modern-progress-container {
-      height: 10px; background: #f1f5f9; border-radius: 20px; overflow: hidden; margin-bottom: 12px;
+      height: 10px; background: #edf2f7; border-radius: 20px; overflow: hidden; margin-bottom: 12px;
       .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #1D9E75, #34d399); border-radius: 20px; }
     }
     .progress-hint { font-size: 12px; color: var(--app-text-muted); margin: 0; text-align: center; }
@@ -323,20 +345,27 @@ export class EditProfileModal {
     .achievements-modern-list {
       display: flex; flex-direction: column; gap: 12px;
       .achievement-row {
-        display: flex; align-items: center; gap: 14px; background: #f8fafc; padding: 12px; border-radius: 16px;
+        display: flex; align-items: center; gap: 14px; background: #f7faf9; padding: 12px; border-radius: 18px; border: 1px solid rgba(148,163,184,0.10);
         .a-icon-box { width: 44px; height: 44px; background: white; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
         .a-info { flex: 1; .a-name { font-size: 14px; font-weight: 700; color: var(--app-text-main); display: block; } .a-desc { font-size: 11px; color: var(--app-text-muted); } }
         .a-medal { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; }
       }
     }
 
+    .empty-ach-state {
+      text-align: center;
+      padding: 20px 10px 6px;
+      .empty-icon { width: 54px; height: 54px; margin: 0 auto 12px; border-radius: 18px; background: rgba(29,158,117,0.08); color: #1D9E75; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+      p { margin: 0; font-size: 13px; color: var(--app-text-muted); font-weight: 600; }
+    }
+
     .actions-group { display: flex; flex-direction: column; gap: 12px; margin-bottom: 40px; }
     .premium-action-btn {
-      width: 100%; height: 60px; background: white; border: none; border-radius: 18px;
+      width: 100%; height: 60px; border: none; border-radius: 20px;
       display: flex; align-items: center; padding: 0 16px; gap: 16px;
       transition: transform 0.2s;
       &:active { transform: scale(0.98); }
-      .btn-icon-bg { width: 36px; height: 36px; background: #f1f5f9; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 18px; }
+      .btn-icon-bg { width: 38px; height: 38px; background: #f3f7f7; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 18px; }
       span { flex: 1; text-align: left; font-size: 15px; font-weight: 700; color: var(--app-text-main); }
       .btn-arrow { color: #cbd5e1; }
       &.logout-btn { .btn-icon-bg { background: #fee2e2; color: #ef4444; } span { color: #ef4444; } }
