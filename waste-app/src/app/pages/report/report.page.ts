@@ -100,8 +100,8 @@ export class ReportDetailModal {
           @if (photoCaptured) {
             <img [src]="photoCaptured" class="captured-img">
             <div class="photo-overlay">
-              <ion-icon name="camera-reverse"></ion-icon>
-              <span>Cambiar Foto</span>
+              <ion-icon name="camera"></ion-icon>
+              <span>Capturar nueva foto</span>
             </div>
           } @else {
             <div class="empty-state">
@@ -109,7 +109,7 @@ export class ReportDetailModal {
                 <ion-icon name="camera"></ion-icon>
               </div>
               <h3>Capturar Evidencia</h3>
-              <p>Muestra el problema detectado</p>
+              <p>📷 Usa tu cámara para capturar una foto</p>
             </div>
           }
         </div>
@@ -339,9 +339,20 @@ export class ReportPage implements OnInit, AfterViewInit {
 
   async takePhoto() {
     try {
-      const image = await Camera.getPhoto({ quality: 90, resultType: CameraResultType.DataUrl, source: CameraSource.Camera });
+      // IMPORTANTE: Solo permite captura con cámara (CameraSource.Camera)
+      // NO se puede seleccionar fotos de galería - debe ser captura en el momento
+      const image = await Camera.getPhoto({ 
+        quality: 90, 
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera,  // Solo cámara, NUNCA galería
+        promptLabelHeader: 'Capturar foto',
+        promptLabelCancel: 'Cancelar'
+      });
       this.photoCaptured = image.dataUrl || null;
-    } catch (e) {}
+    } catch (e) {
+      // El usuario canceló la captura
+      console.log('Captura cancelada');
+    }
   }
 
   canSubmit() { return this.photoCaptured && this.selectedType && this.description.trim().length >= 5; }
