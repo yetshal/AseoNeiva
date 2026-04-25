@@ -209,5 +209,7 @@ export class HomePage implements OnInit {
   }
 
   goToProfile(): void { this.router.navigate(['/tabs/profile']); }
+  goToMap(): void { this.router.navigate(['/tabs/map']); }
+  goToReport(): void { this.router.navigate(['/tabs/report']); }
   goToNotifications(): void {}
 }

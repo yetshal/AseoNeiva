@@ -1,9 +1,9 @@
-import { Component, OnInit, inject, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClientModule } from '@angular/common/http';
 import { IonicModule } from '@ionic/angular';
 import * as L from 'leaflet';
 import { FleetService, Vehicle } from '../../services/fleet.service';
-import { HttpClientModule } from '@angular/common/http';
 
 @Component({
   selector: 'app-map',
@@ -23,7 +23,7 @@ import { HttpClientModule } from '@angular/common/http';
             </div>
 
             <div class="app-toolbar-actions">
-              <button class="app-toolbar-icon-button emphasis" (click)="getCurrentLocation()">
+              <button class="app-toolbar-icon-button emphasis" type="button" (click)="getCurrentLocation()">
                 <ion-icon name="locate-outline"></ion-icon>
               </button>
             </div>
@@ -35,186 +35,448 @@ import { HttpClientModule } from '@angular/common/http';
     <ion-content [fullscreen]="true" class="map-content">
       <div #mapContainer class="map-container"></div>
 
-      <!-- Fleet Overview Header -->
-      <div class="fleet-overview-header app-panel animate-down">
-        <div class="fleet-summary">
-          <div class="summary-item">
-            <span class="sum-val">{{ nearbyTrucks.length }}</span>
-            <span class="sum-lab">Activos</span>
-          </div>
-          <div class="summary-divider"></div>
-          <div class="summary-item">
-            <span class="sum-val">{{ activeTrucksCount }}</span>
-            <span class="sum-lab">En Ruta</span>
-          </div>
+      <section class="map-status app-panel animate-rise">
+        <div class="status-block">
+          <span>{{ nearbyTrucks.length }}</span>
+          <strong>Unidades</strong>
         </div>
-        <button class="recenter-btn gradient-primary shadow-premium" (click)="getCurrentLocation()">
+        <div class="status-divider"></div>
+        <div class="status-block">
+          <span>{{ activeTrucksCount }}</span>
+          <strong>Activas</strong>
+        </div>
+        <button class="locate-fab" type="button" (click)="getCurrentLocation()">
           <ion-icon name="locate"></ion-icon>
         </button>
-      </div>
+      </section>
 
-      <!-- Floating Stats Widget -->
-      <div class="stats-widget app-panel animate-fade" *ngIf="!selectedTruck">
-        <div class="widget-icon">
-          <ion-icon name="radio-outline"></ion-icon>
+      <section class="signal-note app-panel animate-fade" *ngIf="!selectedTruck">
+        <ion-icon name="radio-outline"></ion-icon>
+        <div>
+          <strong>Señal de flota</strong>
+          <span>Actualización automática cada 10 segundos</span>
         </div>
-        <div class="widget-content">
-          <span class="w-title">Monitoreo Satelital</span>
-          <span class="w-desc">Actualizando cada 10s</span>
-        </div>
-      </div>
+      </section>
 
-      <!-- Elegant Bottom Sheet for Truck Detail -->
       @if (selectedTruck) {
-        <div class="truck-sheet app-panel animate-up">
+        <section class="truck-sheet app-panel app-panel-strong animate-rise">
           <div class="sheet-handle"></div>
           <div class="sheet-header">
             <div class="truck-identity">
-              <div class="truck-icon-box gradient-primary">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M3 4h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
-                </svg>
+              <div class="truck-icon">
+                <ion-icon name="bus-outline"></ion-icon>
               </div>
-              <div class="truck-meta">
-                <span class="truck-plate">{{ selectedTruck.plate }}</span>
-                <span class="truck-driver">{{ selectedTruck.driver_name }}</span>
+              <div class="truck-copy">
+                <strong>{{ selectedTruck.plate }}</strong>
+                <span>{{ selectedTruck.driver_name }}</span>
               </div>
             </div>
-            <div class="truck-status-badge" [class]="selectedTruck.status">
-              {{ selectedTruck.status === 'active' ? 'Operando' : 'Mantenimiento' }}
-            </div>
+            <span class="status-pill" [class.green]="selectedTruck.status === 'active'" [class.amber]="selectedTruck.status !== 'active'">
+              {{ selectedTruck.status === 'active' ? 'Operando' : 'Pausado' }}
+            </span>
           </div>
 
-          <div class="truck-stats-grid">
-            <div class="t-stat">
-              <span class="t-label">Distancia</span>
-              <span class="t-value">{{ selectedTruck.distance || 0 }}m</span>
+          <div class="truck-metrics">
+            <div>
+              <span>Distancia</span>
+              <strong>{{ selectedTruck.distance || 0 }}m</strong>
             </div>
-            <div class="t-stat">
-              <span class="t-label">ETA</span>
-              <span class="t-value">{{ (selectedTruck.distance || 0) / 333 | number:'1.0-0' }} min</span>
+            <div>
+              <span>ETA</span>
+              <strong>{{ (selectedTruck.distance || 0) / 333 | number:'1.0-0' }} min</strong>
             </div>
-            <div class="t-stat">
-              <span class="t-label">Carga</span>
-              <span class="t-value">85%</span>
+            <div>
+              <span>Carga</span>
+              <strong>85%</strong>
             </div>
           </div>
 
           <div class="sheet-actions">
-            <button class="btn-action primary" (click)="selectTruck(selectedTruck)">Optimizar Ruta</button>
-            <button class="btn-action secondary" (click)="selectedTruck = null">Ver flota</button>
+            <button class="app-button" type="button" (click)="selectTruck(selectedTruck)">
+              <ion-icon name="navigate-outline"></ion-icon>
+              Centrar unidad
+            </button>
+            <button class="app-muted-button" type="button" (click)="selectedTruck = null">
+              Ver flota
+            </button>
           </div>
-        </div>
-      }
+        </section>
+      } @else {
+        <section class="fleet-dock">
+          <div class="fleet-title-row">
+            <strong>Unidades en zona</strong>
+            <span>{{ nearbyTrucks.length }} disponibles</span>
+          </div>
 
-      <!-- Horizontal Fleet Scroller -->
-      <div class="fleet-scroller-container" *ngIf="!selectedTruck">
-        <div class="scroller-header">
-          <span class="scroller-title">Unidades en Zona</span>
-          <span class="scroller-more">Ver todas</span>
-        </div>
-        <div class="fleet-scroller">
-          @for (truck of nearbyTrucks; track truck.id) {
-            <div class="fleet-card app-panel" (click)="selectTruck(truck)">
-              <div class="card-status-dot" [class.online]="truck.status === 'active'"></div>
-              <div class="card-icon">
-                <ion-icon name="bus-outline"></ion-icon>
+          <div class="fleet-scroller">
+            @for (truck of nearbyTrucks; track truck.id) {
+              <button type="button" class="fleet-card app-panel" (click)="selectTruck(truck)">
+                <span class="fleet-status" [class.online]="truck.status === 'active'"></span>
+                <span class="fleet-icon"><ion-icon name="bus-outline"></ion-icon></span>
+                <span class="fleet-copy">
+                  <strong>{{ truck.plate }}</strong>
+                  <small>{{ truck.distance }}m</small>
+                </span>
+                <ion-icon name="chevron-forward-outline" class="fleet-arrow"></ion-icon>
+              </button>
+            } @empty {
+              <div class="empty-fleet app-panel">
+                <ion-icon name="trail-sign-outline"></ion-icon>
+                <span>No hay unidades cercanas en este momento.</span>
               </div>
-              <div class="card-info">
-                <span class="c-plate">{{ truck.plate }}</span>
-                <span class="c-dist">{{ truck.distance }}m</span>
-              </div>
-              <ion-icon name="chevron-forward-outline" class="card-arrow"></ion-icon>
-            </div>
-          } @empty {
-            <div class="empty-fleet-card">
-              <p>No hay unidades cercanas en este momento</p>
-            </div>
-          }
-        </div>
-      </div>
+            }
+          </div>
+        </section>
+      }
     </ion-content>
-    `,
-    styles: [`
+  `,
+  styles: [`
     .page-header .app-toolbar-shell {
       padding-bottom: 8px;
     }
 
-    .map-container { height: 100%; width: 100%; z-index: 1; }
-
-    .fleet-overview-header {
-      position: absolute; top: 104px; left: 16px; right: 16px; z-index: 10;
-      padding: 14px 16px;
-      display: flex; justify-content: space-between; align-items: center;
-
-      .fleet-summary {
-        display: flex; align-items: center; gap: 16px;
-        .summary-item {
-          display: flex; flex-direction: column;
-          .sum-val { font-size: 18px; font-weight: 800; color: var(--app-text-main); }
-          .sum-lab { font-size: 10px; color: var(--app-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
-        }
-        .summary-divider { width: 1px; height: 28px; background: #e2e8f0; }
-      }
-
-      .recenter-btn {
-        width: 42px; height: 42px; border-radius: 14px; border: none;
-        display: flex; align-items: center; justify-content: center;
-        color: white; font-size: 20px; box-shadow: 0 14px 24px rgba(29,158,117,0.18);
-      }
+    .map-content {
+      --background: var(--app-bg);
     }
 
-    .stats-widget {
-      position: absolute; top: 178px; left: 16px; z-index: 10;
-      padding: 10px 14px;
-      display: flex; align-items: center; gap: 12px;
-      .widget-icon { width: 34px; height: 34px; border-radius: 12px; background: rgba(29,158,117,0.10); color: #1D9E75; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-      .w-title { display: block; font-size: 11px; font-weight: 800; color: var(--app-text-main); }
-      .w-desc { font-size: 10px; color: #1D9E75; font-weight: 600; }
+    .map-container {
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      filter: saturate(0.92) contrast(0.98);
+    }
+
+    .map-status {
+      position: absolute;
+      top: 104px;
+      left: 16px;
+      right: 16px;
+      z-index: 10;
+      min-height: 72px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .status-block {
+      min-width: 76px;
+      display: grid;
+      gap: 2px;
+    }
+
+    .status-block span {
+      color: var(--app-ink);
+      font-size: 21px;
+      font-weight: 950;
+      line-height: 1;
+    }
+
+    .status-block strong {
+      color: var(--app-muted);
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .status-divider {
+      width: 1px;
+      height: 34px;
+      background: var(--app-line-strong);
+    }
+
+    .locate-fab {
+      width: 44px;
+      height: 44px;
+      margin-left: auto;
+      border: 0;
+      border-radius: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--app-green) 0%, var(--app-blue) 100%);
+      box-shadow: 0 14px 24px rgba(20, 143, 120, 0.22);
+    }
+
+    .locate-fab ion-icon {
+      font-size: 21px;
+    }
+
+    .signal-note {
+      position: absolute;
+      top: 188px;
+      left: 16px;
+      z-index: 10;
+      max-width: calc(100% - 32px);
+      padding: 10px 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .signal-note ion-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 13px;
+      padding: 7px;
+      color: var(--app-green-dark);
+      background: rgba(20, 143, 120, 0.12);
+    }
+
+    .signal-note strong,
+    .signal-note span {
+      display: block;
+    }
+
+    .signal-note strong {
+      color: var(--app-ink);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .signal-note span {
+      margin-top: 2px;
+      color: var(--app-muted);
+      font-size: 11px;
+      font-weight: 650;
     }
 
     .truck-sheet {
-      position: absolute; bottom: 84px; left: 16px; right: 16px; z-index: 20;
-      border-radius: 30px; padding: 24px;
-      .sheet-handle { width: 40px; height: 4px; background: #f1f5f9; border-radius: 10px; margin: -12px auto 16px; }
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 104px;
+      z-index: 20;
+      padding: 22px;
     }
 
-    .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .sheet-handle {
+      width: 44px;
+      height: 4px;
+      margin: -8px auto 18px;
+      border-radius: 999px;
+      background: rgba(81, 97, 121, 0.18);
+    }
+
+    .sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
     .truck-identity {
-      display: flex; align-items: center; gap: 16px;
-      .truck-icon-box { width: 48px; height: 48px; border-radius: 18px; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 14px 24px rgba(29,158,117,0.18); svg { width: 24px; } }
-      .truck-meta { display: flex; flex-direction: column; .truck-plate { font-size: 20px; font-weight: 800; color: var(--app-text-main); } .truck-driver { font-size: 13px; color: var(--app-text-muted); } }
-    }
-    .truck-status-badge { font-size: 11px; font-weight: 800; padding: 7px 12px; border-radius: 999px; &.active { background: #ecfdf5; color: #059669; } }
-
-    .truck-stats-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); background: #f7faf9; border-radius: 22px; padding: 16px; margin-bottom: 24px;
-      .t-stat { text-align: center; display: flex; flex-direction: column; gap: 4px; &:not(:last-child) { border-right: 1px solid #e2e8f0; } .t-label { font-size: 11px; color: var(--app-text-muted); font-weight: 600; text-transform: uppercase; } .t-value { font-size: 16px; font-weight: 700; color: var(--app-text-main); } }
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
-    .sheet-actions { display: flex; gap: 12px; .btn-action { flex: 1; height: 50px; border-radius: 16px; border: none; font-weight: 700; &.primary { background: #1D9E75; color: white; box-shadow: 0 14px 24px rgba(29,158,117,0.18); } &.secondary { background: #f1f5f9; color: #64748b; } } }
-
-    .fleet-scroller-container {
-      position: absolute; bottom: 84px; left: 0; right: 0; z-index: 10;
-      .scroller-header { padding: 0 20px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: baseline; .scroller-title { color: var(--app-text-main); font-weight: 800; font-size: 14px; text-shadow: 0 1px 4px white; } .scroller-more { font-size: 11px; font-weight: 700; color: #1D9E75; } }
+    .truck-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--app-green), var(--app-blue));
+      box-shadow: 0 14px 24px rgba(20, 143, 120, 0.22);
+      flex-shrink: 0;
     }
 
-    .fleet-scroller { display: flex; gap: 12px; padding: 0 20px 10px; overflow-x: auto; &::-webkit-scrollbar { display: none; } }
+    .truck-icon ion-icon {
+      font-size: 24px;
+    }
+
+    .truck-copy {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .truck-copy strong {
+      color: var(--app-ink);
+      font-size: 20px;
+      font-weight: 950;
+    }
+
+    .truck-copy span {
+      overflow: hidden;
+      color: var(--app-muted);
+      font-size: 13px;
+      font-weight: 650;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .truck-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .truck-metrics div {
+      min-height: 72px;
+      border-radius: 18px;
+      padding: 12px 8px;
+      display: grid;
+      align-content: center;
+      gap: 5px;
+      text-align: center;
+      background: linear-gradient(135deg, rgba(20, 143, 120, 0.08), rgba(30, 107, 214, 0.07));
+    }
+
+    .truck-metrics span {
+      color: var(--app-muted);
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .truck-metrics strong {
+      color: var(--app-ink);
+      font-size: 17px;
+      font-weight: 950;
+    }
+
+    .sheet-actions {
+      display: grid;
+      grid-template-columns: 1fr 0.76fr;
+      gap: 10px;
+    }
+
+    .sheet-actions button {
+      width: 100%;
+    }
+
+    .fleet-dock {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 104px;
+      z-index: 10;
+    }
+
+    .fleet-title-row {
+      padding: 0 18px 10px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--app-ink);
+      text-shadow: 0 1px 8px rgba(255, 255, 255, 0.9);
+    }
+
+    .fleet-title-row strong {
+      font-size: 15px;
+      font-weight: 950;
+    }
+
+    .fleet-title-row span {
+      color: var(--app-green-dark);
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .fleet-scroller {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 0 18px 8px;
+      scrollbar-width: none;
+    }
+
+    .fleet-scroller::-webkit-scrollbar {
+      display: none;
+    }
+
     .fleet-card {
-      min-width: 164px; padding: 14px; border-radius: 24px; display: flex; align-items: center; gap: 12px; position: relative;
-      .card-status-dot { position: absolute; top: 12px; right: 12px; width: 6px; height: 6px; border-radius: 50%; background: #cbd5e1; &.online { background: #1D9E75; box-shadow: 0 0 6px rgba(29, 158, 117, 0.4); } }
-      .card-icon { width: 38px; height: 38px; border-radius: 14px; background: rgba(29,158,117,0.10); color: #1D9E75; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-      .card-info { display: flex; flex-direction: column; .c-plate { font-size: 14px; font-weight: 800; color: var(--app-text-main); } .c-dist { font-size: 11px; color: #1D9E75; font-weight: 600; } }
-      .card-arrow { font-size: 14px; color: #cbd5e1; margin-left: auto; }
+      position: relative;
+      min-width: 176px;
+      min-height: 78px;
+      border-radius: 22px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      text-align: left;
     }
 
-    .animate-down { animation: slideDown 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-    .animate-up { animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-    .animate-fade { animation: fadeIn 0.8s ease-out; }
-    @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    `]
+    .fleet-status {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(81, 97, 121, 0.34);
+    }
+
+    .fleet-status.online {
+      background: var(--app-green);
+      animation: app-pulse 2s infinite;
+    }
+
+    .fleet-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--app-green-dark);
+      background: rgba(20, 143, 120, 0.12);
+      flex-shrink: 0;
+    }
+
+    .fleet-copy {
+      min-width: 0;
+      display: grid;
+      gap: 3px;
+      flex: 1;
+    }
+
+    .fleet-copy strong {
+      color: var(--app-ink);
+      font-size: 14px;
+      font-weight: 950;
+    }
+
+    .fleet-copy small {
+      color: var(--app-green-dark);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .fleet-arrow {
+      color: rgba(81, 97, 121, 0.42);
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .empty-fleet {
+      min-width: calc(100vw - 36px);
+      min-height: 92px;
+      padding: 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--app-muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .empty-fleet ion-icon {
+      color: var(--app-amber);
+      font-size: 24px;
+    }
+  `]
 })
 export class MapPage implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('mapContainer') mapContainer!: ElementRef;
@@ -262,15 +524,15 @@ export class MapPage implements OnInit, AfterViewInit, OnDestroy {
 
     const userIcon = L.divIcon({
       className: 'user-location-icon',
-      html: '<div style="background: #185FA5; width: 15px; height: 15px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.3);"></div>',
-      iconSize: [15, 15]
+      html: '<div style="background: #1e6bd6; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 12px rgba(16,35,63,0.35);"></div>',
+      iconSize: [16, 16]
     });
 
     this.userMarker = L.marker([this.userCoords.lat, this.userCoords.lng], { icon: userIcon }).addTo(this.map);
 
     this.loadRealData();
     this.getCurrentLocation();
-    
+
     this.refreshInterval = setInterval(() => this.loadRealData(), 10000);
   }
 
@@ -282,10 +544,6 @@ export class MapPage implements OnInit, AfterViewInit, OnDestroy {
           distance: this.calculateDistance(this.userCoords.lat, this.userCoords.lng, Number(v.latitude), Number(v.longitude))
         })).sort((a, b) => (a.distance || 0) - (b.distance || 0));
 
-        if (!this.selectedTruck && this.nearbyTrucks.length > 0) {
-          this.selectedTruck = this.nearbyTrucks[0];
-        }
-
         this.updateMarkers();
       }
     });
@@ -295,19 +553,22 @@ export class MapPage implements OnInit, AfterViewInit, OnDestroy {
     if (!this.map) return;
 
     const truckIconHtml = (color: string) => `
-      <div style="background: ${color}; width: 30px; height: 30px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
-          <path d="M3 4h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+      <div style="background: ${color}; width: 34px; height: 34px; border-radius: 13px; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid white; box-shadow: 0 8px 18px rgba(16,35,63,0.24);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width: 17px; height: 17px;">
+          <path d="M3 7h13v8H3z"></path>
+          <path d="M16 10h3l2 3v2h-5z"></path>
+          <circle cx="7" cy="17" r="2"></circle>
+          <circle cx="18" cy="17" r="2"></circle>
         </svg>
       </div>
     `;
 
     this.nearbyTrucks.forEach(truck => {
-      const color = truck.status === 'active' ? '#1D9E75' : '#888';
+      const color = truck.status === 'active' ? '#148f78' : '#7a8798';
       const icon = L.divIcon({
         className: 'truck-map-icon',
         html: truckIconHtml(color),
-        iconSize: [30, 30]
+        iconSize: [34, 34]
       });
 
       const coords: L.LatLngExpression = [Number(truck.latitude), Number(truck.longitude)];

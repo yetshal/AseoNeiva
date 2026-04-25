@@ -1,7 +1,7 @@
 <ion-header [translucent]="true" class="home-header app-page-header">
   <ion-toolbar>
     <div class="app-toolbar-shell">
-      <div class="app-toolbar-card home-toolbar-card">
+      <div class="app-toolbar-card">
         <div class="app-toolbar-copy">
           <span class="app-toolbar-eyebrow">Panel ciudadano</span>
           <div class="app-toolbar-title-row">
@@ -10,15 +10,14 @@
           </div>
         </div>
 
-        <div class="app-toolbar-actions header-actions">
-          <button class="app-toolbar-icon-button notification-btn" (click)="goToNotifications()">
+        <div class="app-toolbar-actions">
+          <button class="app-toolbar-icon-button" type="button" (click)="goToNotifications()">
             <ion-icon name="notifications-outline"></ion-icon>
             <span class="notification-dot"></span>
           </button>
 
-          <button class="profile-trigger" (click)="goToProfile()">
-            <div class="avatar-glow"></div>
-            <div class="avatar">{{ getUserInitials() }}</div>
+          <button class="profile-trigger" type="button" (click)="goToProfile()">
+            <span class="avatar">{{ getUserInitials() }}</span>
           </button>
         </div>
       </div>
@@ -27,133 +26,119 @@
 </ion-header>
 
 <ion-content [fullscreen]="true" class="home-content">
-  <div class="main-dashboard ion-padding">
-    <div class="location-bar" (click)="getCurrentLocation()">
-      <div class="loc-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-          <circle cx="12" cy="10" r="3"/>
-        </svg>
+  <main class="app-shell home-shell">
+    <section class="location-strip animate-rise" (click)="getCurrentLocation()">
+      <div class="location-icon">
+        <ion-icon name="location-outline"></ion-icon>
       </div>
-      <div class="loc-content">
-        <span class="loc-label">Servicio en</span>
-        <span class="loc-value">{{ user?.address || 'Detectando ubicación...' }}</span>
+      <div class="location-copy">
+        <span>Servicio en</span>
+        <strong>{{ user?.address || 'Detectando ubicación...' }}</strong>
       </div>
-      <ion-icon name="chevron-forward-outline" class="loc-chevron"></ion-icon>
-    </div>
+      <ion-icon name="chevron-forward-outline" class="location-arrow"></ion-icon>
+    </section>
 
-    <div class="premium-card eta-card" [class.inactive]="estimatedMinutes === 0">
-      <div class="card-bg-decoration"></div>
+    <section class="service-hero app-panel app-panel-strong animate-pop" [class.inactive]="estimatedMinutes === 0">
+      <div class="hero-top">
+        <div>
+          <span class="app-eyebrow">Recolección</span>
+          <h2>Estado del servicio</h2>
+        </div>
+        <span class="status-pill" [class.green]="estimatedMinutes > 0" [class.amber]="estimatedMinutes === 0">
+          {{ estimatedMinutes > 0 ? 'En vivo' : 'En espera' }}
+        </span>
+      </div>
 
       @if (estimatedMinutes > 0) {
-        <div class="eta-header">
-          <div class="eta-title-group">
-            <span class="eta-title">Rastreo en tiempo real</span>
-            <span class="eta-subtitle">Unidad de recolección cercana</span>
+        <div class="eta-layout">
+          <div class="eta-main">
+            <span class="eta-number">{{ estimatedMinutes }}</span>
+            <span class="eta-label">minutos</span>
           </div>
-          <div class="live-indicator">
-            <span class="pulse-dot"></span>
-            EN VIVO
-          </div>
-        </div>
-
-        <div class="eta-body">
-          <div class="eta-stat">
-            <span class="stat-val">{{ estimatedMinutes }}</span>
-            <span class="stat-unit">minutos</span>
-          </div>
-          <div class="eta-visual-divider"></div>
-          <div class="eta-stat">
-            <span class="stat-val">{{ estimatedMeters }}</span>
-            <span class="stat-unit">metros</span>
+          <div class="eta-details">
+            <div>
+              <ion-icon name="navigate-outline"></ion-icon>
+              <span>{{ estimatedMeters }} metros</span>
+            </div>
+            <div>
+              <ion-icon name="calendar-clear-outline"></ion-icon>
+              <span>Próxima visita {{ nextCollectionTime }}</span>
+            </div>
           </div>
         </div>
       } @else {
-        <div class="eta-empty-state">
-          <div class="empty-visual">
-            <div class="icon-orbit">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-              </svg>
-            </div>
+        <div class="service-empty">
+          <div class="service-icon">
+            <ion-icon name="time-outline"></ion-icon>
           </div>
-          <div class="empty-info">
-            <h2 class="empty-title">Estado del servicio</h2>
-            <p class="empty-desc">
-              Nuestras unidades están en recarga o cambio de turno. Regresamos en breve para servirte.
-            </p>
+          <div>
+            <h3>No hay unidad cercana</h3>
+            <p>Te avisaremos cuando una ruta activa esté aproximándose a tu zona.</p>
           </div>
         </div>
       }
 
-      <div class="eta-footer">
-        <ion-icon name="calendar-clear-outline"></ion-icon>
-        <span>Próxima visita: <strong>{{ nextCollectionTime }}</strong></span>
+      <div class="hero-actions">
+        <button type="button" class="app-button" (click)="goToMap()">
+          <ion-icon name="map-outline"></ion-icon>
+          Ver mapa
+        </button>
+        <button type="button" class="app-muted-button" (click)="openScheduleConfig()">
+          <ion-icon name="calendar-outline"></ion-icon>
+          Horario
+        </button>
       </div>
-    </div>
+    </section>
 
-    <div class="quick-stats-grid">
-      <div class="q-stat-card" (click)="goToProfile()">
-        <div class="q-icon-box points">
-          <ion-icon name="sparkles-outline"></ion-icon>
-        </div>
-        <div class="q-data">
-          <span class="q-val">{{ currentPoints }}</span>
-          <span class="q-lab">Puntos</span>
-        </div>
-      </div>
+    <section class="quick-actions">
+      <button type="button" class="quick-action-card points" (click)="goToProfile()">
+        <span class="quick-icon"><ion-icon name="sparkles-outline"></ion-icon></span>
+        <strong>{{ currentPoints }}</strong>
+        <span>Puntos</span>
+      </button>
 
-      <div class="q-stat-card" (click)="goToProfile()">
-        <div class="q-icon-box streak">
-          <ion-icon name="flame-outline"></ion-icon>
-        </div>
-        <div class="q-data">
-          <span class="q-val">{{ currentStreak }}</span>
-          <span class="q-lab">Racha</span>
-        </div>
-      </div>
+      <button type="button" class="quick-action-card streak" (click)="goToProfile()">
+        <span class="quick-icon"><ion-icon name="flame-outline"></ion-icon></span>
+        <strong>{{ currentStreak }}</strong>
+        <span>Racha</span>
+      </button>
 
-      <div class="q-stat-card" (click)="goToProfile()">
-        <div class="q-icon-box level">
-          <ion-icon name="ribbon-outline"></ion-icon>
-        </div>
-        <div class="q-data">
-          <span class="q-val">{{ user?.level || 1 }}</span>
-          <span class="q-lab">Nivel</span>
-        </div>
-      </div>
-    </div>
+      <button type="button" class="quick-action-card report" (click)="goToReport()">
+        <span class="quick-icon"><ion-icon name="flag-outline"></ion-icon></span>
+        <strong>Nuevo</strong>
+        <span>Reporte</span>
+      </button>
+    </section>
 
-    <div class="section-container">
-      <div class="section-header">
-        <h2 class="section-title">Tu horario de recolección</h2>
-        <button class="action-link" (click)="openScheduleConfig()">Configurar</button>
+    <section class="app-section">
+      <div class="app-section-header">
+        <div>
+          <h2 class="app-section-title">Horario de recolección</h2>
+          <p class="app-section-subtitle">Días configurados para sacar tus residuos.</p>
+        </div>
+        <button type="button" class="app-link-button" (click)="openScheduleConfig()">Editar</button>
       </div>
 
       @if (collectionSchedule.length > 0) {
-        <div class="schedule-modern-list">
+        <div class="schedule-list">
           @for (schedule of collectionSchedule; track schedule.day) {
-            <div class="schedule-row">
-              <div class="day-bubble">{{ schedule.day.substring(0, 3) }}</div>
-              <div class="time-info">
-                <span class="time-val">{{ schedule.time }}</span>
-                <span class="zone-tag">Zona residencial</span>
+            <article class="schedule-row">
+              <span class="day-badge">{{ schedule.day.substring(0, 3) }}</span>
+              <div class="schedule-info">
+                <strong>{{ schedule.time }}</strong>
+                <span>Zona residencial</span>
               </div>
-              <div class="status-icon">
-                <ion-icon name="checkmark-circle" color="primary"></ion-icon>
-              </div>
-            </div>
+              <ion-icon name="checkmark-circle"></ion-icon>
+            </article>
           }
         </div>
       } @else {
-        <div class="empty-placeholder" (click)="openScheduleConfig()">
-          <div class="placeholder-icon">
-            <ion-icon name="calendar-outline"></ion-icon>
-          </div>
-          <p>No has configurado tus horarios</p>
-          <button class="setup-btn">Configurar ahora</button>
-        </div>
+        <button type="button" class="empty-schedule app-panel" (click)="openScheduleConfig()">
+          <span class="empty-icon"><ion-icon name="calendar-outline"></ion-icon></span>
+          <strong>Configura tu horario</strong>
+          <span>Así podremos estimar mejor el servicio en tu zona.</span>
+        </button>
       }
-    </div>
-  </div>
+    </section>
+  </main>
 </ion-content>
