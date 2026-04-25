@@ -647,6 +647,7 @@ export class ReportPage implements OnInit, AfterViewInit {
   submitting = false;
   isTypeModalOpen = false;
   reports: Report[] = [];
+  isLoading = false;
 
   latitude: number = 2.9273;
   longitude: number = -75.2819;
@@ -668,6 +669,12 @@ export class ReportPage implements OnInit, AfterViewInit {
   ];
 
   ngOnInit() {
+    this.loadMyReports();
+  }
+
+  ionViewWillEnter() {
+    // Forzar limpieza y recarga al entrar para evitar datos de usuarios anteriores
+    this.reports = [];
     this.loadMyReports();
   }
 

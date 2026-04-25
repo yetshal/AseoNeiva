@@ -1,13 +1,15 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, ModalController, ToastController } from '@ionic/angular';
 import { AuthService } from '../services/auth.service';
+import { User } from '../models/user.model';
 import { GamificationService } from '../services/gamification.service';
 import { FleetService, Vehicle } from '../services/fleet.service';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { ScheduleModalComponent } from './schedule-modal.component';
+import { Geolocation } from '@capacitor/geolocation';
 
 @Component({
   selector: 'app-home',
@@ -26,7 +28,7 @@ export class HomePage implements OnInit {
   private http = inject(HttpClient);
   private apiUrl = (environment as any).apiUrl;
 
-  user = this.auth.getCurrentUser();
+  user: User | null = null;
   
   estimatedMinutes = 0;
   estimatedMeters = 0;
@@ -44,30 +46,21 @@ export class HomePage implements OnInit {
   activeVehicles: Vehicle[] = [];
 
   ngOnInit() {
-    this.refreshUserData();
+    // Única fuente de verdad: suscripción al usuario centralizado
+    this.auth.currentUser$.subscribe(u => {
+      this.user = u;
+      if (u) {
+        this.collectionSchedule = u.collection_schedule || [];
+        this.currentPoints = u.points || 0;
+        this.currentStreak = u.streak || 0;
+        this.validReports = u.valid_reports || 0;
+      }
+      this.updateStatus();
+    });
+
     this.loadActiveFleet();
     this.startStatusTimer();
     this.getCurrentLocation();
-  }
-
-  getCurrentLocation() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((pos) => {
-        this.userCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        this.updateStatus();
-      }, () => {
-        // Default a Neiva centro si falla
-        this.userCoords = { lat: 2.9273, lng: -75.2819 };
-      });
-    }
-  }
-
-  refreshUserData() {
-    this.user = this.auth.getCurrentUser();
-    if (this.user?.collection_schedule) {
-      this.collectionSchedule = this.user.collection_schedule;
-    }
-    this.loadGamificationData();
   }
 
   loadActiveFleet() {
@@ -80,24 +73,32 @@ export class HomePage implements OnInit {
     });
   }
 
+  ionViewWillEnter() {
+    this.loadGamificationData();
+    this.loadActiveFleet();
+  }
+
+  async getCurrentLocation() {
+    try {
+      const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+      this.userCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      this.updateStatus();
+    } catch (e) {
+      // Default a Neiva centro si falla
+      this.userCoords = { lat: 2.9273, lng: -75.2819 };
+    }
+  }
+
   loadGamificationData() {
     this.gamification.getGamificationProfile().subscribe({
       next: (data) => {
-        this.currentPoints = data.user.points;
-        this.currentStreak = data.user.streak;
         this.levelProgress = data.progressToNextLevel;
-        this.validReports = data.user.valid_reports;
-        this.recordStreak = this.currentStreak; 
-
-        if (this.user) {
-          const updatedUser = { ...this.user, points: data.user.points, streak: data.user.streak, level: data.user.level, collection_schedule: data.user.collection_schedule };
-          this.auth.updateUser(updatedUser);
-          this.user = updatedUser;
-        }
+        this.recordStreak = data.user.streak; 
         
-        if (data.user.collection_schedule) {
-          this.collectionSchedule = data.user.collection_schedule;
-          this.updateStatus();
+        if (data.user) {
+          // Fusionar datos del servidor con los locales para no perder campos como el token
+          const fullUser = { ...this.user, ...data.user } as User;
+          this.auth.updateUser(fullUser);
         }
       },
       error: () => {}
@@ -108,11 +109,10 @@ export class HomePage implements OnInit {
     setInterval(() => {
       this.updateStatus();
       this.loadActiveFleet();
-    }, 15000); // Reducido a 15s para más fluidez
+    }, 15000);
   }
 
   updateStatus() {
-    // 1. Determinar próxima recolección según horario
     if (this.collectionSchedule && this.collectionSchedule.length > 0) {
       const now = new Date();
       const daysWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -137,10 +137,8 @@ export class HomePage implements OnInit {
       this.nextCollectionTime = 'No configurado';
     }
 
-    // 2. Calcular Seguimiento Real si hay camiones activos
     if (this.activeVehicles.length > 0 && this.userCoords) {
       let minDistance = Infinity;
-      
       this.activeVehicles.forEach(v => {
         const d = this.calculateDistance(
           this.userCoords!.lat, this.userCoords!.lng, 
@@ -148,9 +146,7 @@ export class HomePage implements OnInit {
         );
         if (d < minDistance) minDistance = d;
       });
-
       this.estimatedMeters = Math.round(minDistance);
-      // Asumiendo velocidad promedio de 20km/h (333 metros/minuto)
       this.estimatedMinutes = Math.max(Math.ceil(minDistance / 333), 1);
     } else {
       this.estimatedMinutes = 0;
@@ -178,9 +174,14 @@ export class HomePage implements OnInit {
 
   saveSchedule(newSchedule: any[]) {
     if (!this.user) return;
-    this.http.patch(`${this.apiUrl}/users/${this.user.id}`, { collection_schedule: newSchedule }).subscribe({
-      next: () => { this.showToast('Horario actualizado', 'success'); this.refreshUserData(); },
-      error: () => this.showToast('Error al guardar', 'danger')
+    this.http.patch(`${this.apiUrl}/citizen/profile`, { collection_schedule: newSchedule }).subscribe({
+      next: (res: any) => {
+        if (res.user) {
+          this.auth.updateUser(res.user as User);
+          this.showToast('Horario actualizado', 'success');
+        }
+      },
+      error: () => this.showToast('Error al guardar horario', 'danger')
     });
   }
 

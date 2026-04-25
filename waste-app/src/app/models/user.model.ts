@@ -10,6 +10,7 @@ export interface User {
   level: number;
   status: 'active' | 'inactive' | 'pending';
   collection_schedule?: any[];
+  valid_reports?: number;
   created_at: string;
 }
 

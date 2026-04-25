@@ -19,7 +19,7 @@ export const getUserGamification = async (req: CitizenRequest, res: Response) =>
   
   try {
     const userResult = await pool.query(
-      `SELECT id, name, email, points, streak, level, user_type, 
+      `SELECT id, name, email, phone, address, avatar_url, points, streak, level, user_type, 
               total_collections, total_reports, valid_reports, weekly_streak_data, collection_schedule
        FROM users WHERE id = $1`,
       [userId]

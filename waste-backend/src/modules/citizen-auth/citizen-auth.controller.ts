@@ -123,7 +123,7 @@ export const getCitizenProfile = async (req: Request, res: Response) => {
 
   try {
     const result = await pool.query(
-      `SELECT id, name, email, phone, address, avatar_url, points, streak, level, status, created_at
+      `SELECT id, name, email, phone, address, avatar_url, points, streak, level, status, collection_schedule, created_at
        FROM users WHERE id = $1`,
       [id]
     );
@@ -146,6 +146,7 @@ export const getCitizenProfile = async (req: Request, res: Response) => {
         streak: Number(user.streak),
         level: Number(user.level),
         status: user.status,
+        collection_schedule: user.collection_schedule || [],
         created_at: user.created_at
       }
     });
@@ -157,19 +158,21 @@ export const getCitizenProfile = async (req: Request, res: Response) => {
 
 export const updateCitizenProfile = async (req: Request, res: Response) => {
   const { id } = (req as any).citizen || req.params;
-  const { name, phone, address, avatar_url } = req.body;
+  const { name, phone, address, avatar_url, collection_schedule } = req.body;
 
   try {
+    // Usamos NULLIF para tratar strings vacíos como nulos y que COALESCE mantenga el valor anterior si no se envía nada
     const result = await pool.query(
       `UPDATE users
        SET name = COALESCE($1, name),
            phone = COALESCE($2, phone),
            address = COALESCE($3, address),
            avatar_url = COALESCE($4, avatar_url),
+           collection_schedule = COALESCE($5, collection_schedule),
            updated_at = NOW()
-       WHERE id = $5
-       RETURNING id, name, email, phone, address, avatar_url, points, streak, level, status, created_at`,
-      [name, phone, address, avatar_url, id]
+       WHERE id = $6
+       RETURNING id, name, email, phone, address, avatar_url, points, streak, level, status, collection_schedule, created_at`,
+      [name, phone, address, avatar_url, collection_schedule ? JSON.stringify(collection_schedule) : null, id]
     );
 
     if (!result.rows[0]) {
@@ -179,17 +182,11 @@ export const updateCitizenProfile = async (req: Request, res: Response) => {
     const user = result.rows[0];
     res.json({
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-        avatar_url: user.avatar_url,
+        ...user,
         points: Number(user.points),
         streak: Number(user.streak),
         level: Number(user.level),
-        status: user.status,
-        created_at: user.created_at
+        collection_schedule: user.collection_schedule || []
       }
     });
   } catch (err) {
